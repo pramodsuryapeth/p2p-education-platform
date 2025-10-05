@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Requests</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-start py-10 px-4">
+
+  <!-- Dashboard Button -->
+  <div class="absolute top-4 right-4">
+    <a href="/dashboard" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:from-blue-600 hover:to-indigo-700 transition duration-200">
+      🏠 Dashboard
+    </a>
+  </div>
+
+  <!-- Main Container -->
+  <div class="w-full max-w-2xl bg-white rounded-xl shadow p-6">
+    <h2 class="text-2xl font-bold mb-6 text-gray-800">Requests</h2>
+
+    <!-- Flash Messages -->
+    <% if (successMessage) { %>
+      <div class="bg-green-100 text-green-800 px-4 py-2 rounded mb-4 text-sm">
+        <%= successMessage %>
+      </div>
+    <% } %>
+    <% if (errorMessage) { %>
+      <div class="bg-red-100 text-red-800 px-4 py-2 rounded mb-4 text-sm">
+        <%= errorMessage %>
+      </div>
+    <% } %>
+
+    <% const msgs = typeof messages !== 'undefined' ? messages : []; %>
+
+    <% if (msgs.length === 0) { %>
+      <p class="text-center text-gray-500">No requests yet.</p>
+    <% } else { %>
+      <% msgs.forEach(msg => { %>
+        <div class="flex justify-between items-center bg-gray-100 rounded-lg p-4 mb-4 hover:bg-gray-200 hover:scale-[1.01] transition-transform duration-200">
+          <div>
+            <p class="text-md font-semibold text-gray-800"><%= msg.username %></p>
+            <p class="text-sm text-gray-600"><%= msg.text %></p>
+            <% if (msg.timestamp) { %>
+              <p class="text-xs text-gray-400 mt-1">
+                <%= new Date(msg.timestamp).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) %>
+              </p>
+            <% } %>
+          </div>
+          <div class="flex space-x-2">
+            <form action="/request/<%= msg.senderId %>/approve" method="POST">
+              <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded-full hover:bg-green-600">✅</button>
+            </form>
+            <form action="/request/<%= msg.senderId %>/reject" method="POST">
+              <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-full hover:bg-red-600">❌</button>
+            </form>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+
+</body>
+</html>

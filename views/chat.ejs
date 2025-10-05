@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat with <%= receiver.name || 'User' %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .message-enter {
+      animation: messageSlide 0.3s ease-out;
+    }
+    @keyframes messageSlide {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .typing-dots {
+      display: inline-block;
+    }
+    .typing-dots span {
+      animation: typing 1.4s infinite;
+    }
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+    .chat-container {
+      height: 80vh;
+      max-height: 700px;
+    }
+  </style>
+  <script>
+    const SENDER_ID = "<%= senderId %>";
+    const RECEIVER_ID = "<%= receiverId %>";
+    const ROOM_ID = "<%= roomId %>";
+    const SENDER_MODEL = "<%= senderModel %>";
+    const RECEIVER_MODEL = "<%= receiverModel %>";
+    const SENDER_NAME = "<%= sender.name || sender.username || 'You' %>";
+    const RECEIVER_NAME = "<%= receiver.name || receiver.username || 'User' %>";
+  </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center min-h-screen p-4">
+
+  <div class="flex flex-col w-full max-w-2xl bg-white shadow-2xl rounded-2xl overflow-hidden chat-container">
+    
+    <!-- Header with User Info -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <!-- Back Button for Mobile -->
+        <button onclick="goBack()" class="lg:hidden text-white hover:text-blue-200 transition">
+          <i class="fas fa-arrow-left text-lg"></i>
+        </button>
+        
+        <!-- User Avatar and Info -->
+        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+          <i class="fas fa-user text-white"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold"><%= receiver.name || receiver.username || 'User' %></h2>
+          <div class="flex items-center space-x-2">
+
+          </div>
+        </div>
+      </div>
+      
+      <!-- Header Actions -->
+      <div class="flex items-center space-x-3">
+        <span id="typingIndicator" class="text-sm text-blue-200 hidden">
+          <span class="typing-dots">
+            <span>.</span><span>.</span><span>.</span>
+          </span>
+          typing
+        </span>
+        
+      </div>
+    </div>
+
+    <!-- Chat Messages Area -->
+    <div id="chatBox" class="flex-1 p-4 space-y-3 overflow-y-auto bg-gray-50">
+      <!-- Date Separator -->
+      <div class="text-center">
+        <span class="text-xs text-gray-500 bg-gray-200 px-3 py-1 rounded-full">Today</span>
+      </div>
+
+      <% messages.forEach(msg => { %>
+        <div class="message-enter">
+          <li class="flex <%= msg.senderId.toString() === senderId.toString() ? 'justify-end' : 'justify-start' %>">
+            <div class="max-w-[75%]">
+              <!-- Message Bubble -->
+              <div class="px-4 py-3 rounded-2xl break-words shadow-sm
+                          <%= msg.senderId.toString() === senderId.toString() 
+                              ? 'bg-blue-500 text-white rounded-br-none' 
+                              : 'bg-white text-gray-800 rounded-bl-none border border-gray-200' %>">
+                <p class="text-sm leading-relaxed"><%= msg.message %></p>
+              </div>
+              
+              <!-- Message Meta -->
+              <div class="flex items-center space-x-2 mt-1 px-1 
+                          <%= msg.senderId.toString() === senderId.toString() ? 'justify-end' : 'justify-start' %>">
+                <span class="text-xs text-gray-500">
+                  <%= new Date(msg.timestamp || msg.createdAt).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  }) %>
+                </span>
+                <% if (msg.senderId.toString() === senderId.toString()) { %>
+                  <span class="text-xs <%= msg.seen ? 'text-blue-400' : 'text-gray-400' %>">
+                    <i class="fas fa-check<%= msg.seen ? '-double' : '' %>"></i>
+                  </span>
+                <% } %>
+              </div>
+            </div>
+          </li>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Message Input Area -->
+    <div class="bg-white border-t border-gray-200 p-4">
+      <form id="chatForm" class="flex items-end space-x-3">
+        
+        <!-- Message Input -->
+        <div class="flex-1 relative">
+          <textarea 
+            id="messageInput" 
+            placeholder="Type a message..." 
+            rows="1"
+            class="w-full border border-gray-300 rounded-2xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 resize-none max-h-32"
+            autocomplete="off" 
+            required
+          ></textarea>
+          
+          <!-- Quick Actions -->
+          <div class="absolute right-3 bottom-3 flex space-x-1">
+            <button type="button" class="text-gray-400 hover:text-blue-600 transition">
+              <i class="fas fa-microphone"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Send Button -->
+        <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition flex-shrink-0 shadow-lg hover:shadow-xl transform hover:scale-105">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </form>
+      
+      <!-- Quick Replies -->
+      <div id="quickReplies" class="flex space-x-2 mt-3 overflow-x-auto hidden">
+        <button class="quick-reply-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition whitespace-nowrap">
+          Hello!
+        </button>
+        <button class="quick-reply-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition whitespace-nowrap">
+          How are you?
+        </button>
+        <button class="quick-reply-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition whitespace-nowrap">
+          Thanks!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Online Users Sidebar (Desktop) -->
+  <div class="hidden lg:block ml-6 w-80 bg-white rounded-2xl shadow-2xl p-4 chat-container">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Online Users</h3>
+    <div class="space-y-3">
+      <!-- Online users list would go here -->
+      <div class="text-center text-gray-500 py-8">
+        <i class="fas fa-users text-3xl text-gray-300 mb-2"></i>
+        <p class="text-sm">No other users online</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function goBack() {
+      window.history.back();
+    }
+
+    const socket = io();
+
+    // Join chat room + personal room
+    socket.emit("joinRoom", ROOM_ID);
+    socket.emit("joinUser", SENDER_ID);
+
+    const chatBox = document.getElementById("chatBox");
+    const chatForm = document.getElementById("chatForm");
+    const messageInput = document.getElementById("messageInput");
+    const typingIndicator = document.getElementById("typingIndicator");
+    const quickReplies = document.getElementById("quickReplies");
+    const onlineStatus = document.getElementById("onlineStatus");
+    const statusText = document.getElementById("statusText");
+
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+      
+      // Show/hide quick replies based on input
+      if (this.value.trim() === '') {
+        quickReplies.classList.remove('hidden');
+      } else {
+        quickReplies.classList.add('hidden');
+      }
+    });
+
+    // Quick reply buttons
+    document.querySelectorAll('.quick-reply-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        messageInput.value = this.textContent;
+        messageInput.focus();
+        quickReplies.classList.add('hidden');
+      });
+    });
+
+    // Append message with animation
+    function appendMessage(data, isSender) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message-enter';
+      
+      const time = new Date(data.timestamp || new Date()).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      messageDiv.innerHTML = `
+        <li class="flex ${isSender ? "justify-end" : "justify-start"}">
+          <div class="max-w-[75%]">
+            <div class="px-4 py-3 rounded-2xl break-words shadow-sm
+                        ${isSender 
+                          ? 'bg-blue-500 text-white rounded-br-none' 
+                          : 'bg-white text-gray-800 rounded-bl-none border border-gray-200'}">
+              <p class="text-sm leading-relaxed">${data.message}</p>
+            </div>
+            <div class="flex items-center space-x-2 mt-1 px-1 ${isSender ? 'justify-end' : 'justify-start'}">
+              <span class="text-xs text-gray-500">${time}</span>
+              ${isSender ? `
+                <span class="text-xs ${data.seen ? 'text-blue-400' : 'text-gray-400'}">
+                  <i class="fas fa-check${data.seen ? '-double' : ''}"></i>
+                </span>
+              ` : ''}
+            </div>
+          </div>
+        </li>
+      `;
+      
+      chatBox.appendChild(messageDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Receive new message
+    socket.on("chatMessage", data => {
+      appendMessage(data, data.senderId === SENDER_ID);
+      
+      // Update seen status
+      if (data.receiverId === SENDER_ID) {
+        socket.emit('markAsSeen', {
+          messageId: data._id,
+          roomId: ROOM_ID
+        });
+      }
+    });
+
+    // Message seen confirmation
+    socket.on('messageSeen', (data) => {
+      // Update the checkmark for sent messages
+      const messages = chatBox.querySelectorAll('li');
+      messages.forEach(msg => {
+        if (msg.querySelector('.fa-check')) {
+          msg.querySelector('.fa-check').className = 'fas fa-check-double text-blue-400';
+        }
+      });
+    });
+
+    // Send message
+    chatForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      socket.emit("chatMessage", {
+        roomId: ROOM_ID,
+        senderId: SENDER_ID,
+        receiverId: RECEIVER_ID,
+        message,
+        senderModel: SENDER_MODEL,
+        receiverModel: RECEIVER_MODEL,
+        senderName: SENDER_NAME
+      });
+
+      // Reset input
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      quickReplies.classList.remove('hidden');
+    });
+
+    // Typing indicator logic
+    let typingTimeout;
+    let isTyping = false;
+
+    messageInput.addEventListener("input", () => {
+      if (!isTyping) {
+        isTyping = true;
+        socket.emit("typing", { 
+          roomId: ROOM_ID, 
+          senderId: SENDER_ID, 
+          receiverId: RECEIVER_ID,
+          typing: true
+        });
+      }
+
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        isTyping = false;
+        socket.emit("typing", { 
+          roomId: ROOM_ID, 
+          senderId: SENDER_ID, 
+          receiverId: RECEIVER_ID,
+          typing: false
+        });
+      }, 1000);
+    });
+
+    socket.on("typing", (data) => {
+      if (data.receiverId === SENDER_ID && data.senderId === RECEIVER_ID) {
+        if (data.typing) {
+          typingIndicator.classList.remove("hidden");
+        } else {
+          typingIndicator.classList.add("hidden");
+        }
+      }
+    });
+
+    // Online status
+    socket.on('userOnline', (userId) => {
+      if (userId === RECEIVER_ID) {
+        onlineStatus.className = 'w-2 h-2 bg-green-400 rounded-full';
+        statusText.textContent = 'Online';
+      }
+    });
+
+    socket.on('userOffline', (userId) => {
+      if (userId === RECEIVER_ID) {
+        onlineStatus.className = 'w-2 h-2 bg-gray-400 rounded-full';
+        statusText.textContent = 'Offline';
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        chatForm.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    // Focus input on load
+    messageInput.focus();
+
+    // Tooltip functionality
+    document.querySelectorAll('.tooltip').forEach(element => {
+      element.addEventListener('mouseenter', function() {
+        const title = this.getAttribute('title');
+        if (title) {
+          const tooltip = document.createElement('div');
+          tooltip.className = 'absolute bg-gray-800 text-white text-xs px-2 py-1 rounded -mt-8 transform -translate-x-1/2 left-1/2 z-50';
+          tooltip.textContent = title;
+          this.appendChild(tooltip);
+        }
+      });
+      
+      element.addEventListener('mouseleave', function() {
+        const tooltip = this.querySelector('div');
+        if (tooltip) tooltip.remove();
+      });
+    });
+  </script>
+
+</body>
+</html>

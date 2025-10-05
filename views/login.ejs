@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - P2P Learning Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(120deg, #f0f9ff 0%, #e0f2fe 100%);
+    }
+    
+    .card-shadow {
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    }
+    
+    .input-focus:focus {
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
+    
+    .btn-primary {
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+    }
+    
+    .feature-icon {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .signup-option {
+      transition: all 0.3s ease;
+    }
+    
+    .signup-option:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .illustration {
+      background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
+  <div class="w-full max-w-6xl flex flex-col md:flex-row items-stretch rounded-2xl overflow-hidden card-shadow min-h-[600px]">
+    
+    <!-- Left Column - Illustration -->
+    <div class="w-full md:w-2/5 illustration text-white p-8 md:p-12 hidden md:flex flex-col justify-between h-100%">
+      <div class="mb-8">
+        <div class="flex items-center space-x-3 mb-6">
+          <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+            <i class="fas fa-graduation-cap text-white"></i>
+          </div>
+          <span class="font-bold text-white text-xl">P2P Learn</span>
+        </div>
+        <h1 class="text-3xl font-bold mb-4">Where Students Teach Students</h1>
+        <p class="text-white text-opacity-80">Peer-to-peer learning platform where college students share knowledge through video lessons.</p>
+      </div>
+      <div class="space-y-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-video"></i>
+          </div>
+          <p class="text-sm">Upload and watch video lessons</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-users"></i>
+          </div>
+          <p class="text-sm">Learn from peers who explain concepts better</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <p class="text-sm">Build teaching skills while helping others</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column - Login Form -->
+    <div class="w-full md:w-3/5 bg-white p-8 md:p-12 h-full">
+      <div class="mb-8 md:hidden">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <i class="fas fa-graduation-cap text-blue-600"></i>
+          </div>
+          <span class="font-bold text-gray-800 text-xl">P2P Learn</span>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800">Where Students Teach Students</h2>
+      </div>
+
+      <h3 class="text-2xl font-bold text-gray-800 mb-2">Welcome back</h3>
+      <p class="text-gray-600 mb-8">Sign in to your account to continue learning</p>
+
+      <!-- Flash Messages -->
+      <div id="flash-messages" class="mb-6">
+        <% if (typeof successMessage !== 'undefined' && successMessage.length > 0) { %>
+          <% successMessage.forEach(function(msg) { %>
+            <div class="bg-green-100 text-green-800 border border-green-300 rounded-lg px-4 py-3 text-sm mb-4 flex items-center">
+              <i class="fas fa-check-circle mr-2"></i>
+              <%= msg %>
+            </div>
+          <% }); %>
+        <% } %>
+
+        <% if (typeof errorMessage !== 'undefined' && errorMessage.length > 0) { %>
+          <% errorMessage.forEach(function(msg) { %>
+            <div class="bg-red-100 text-red-800 border border-red-300 rounded-lg px-4 py-3 text-sm mb-4 flex items-center">
+              <i class="fas fa-exclamation-circle mr-2"></i>
+              <%= msg %>
+            </div>
+          <% }); %>
+        <% } %>
+      </div>
+
+      <form action="/log" method="post" class="space-y-5">
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-user text-gray-400"></i>
+            </div>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              required
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-focus"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-lock text-gray-400"></i>
+            </div>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              required
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-focus"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="userclass" class="block text-sm font-medium text-gray-700 mb-1">I am a</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-user-graduate text-gray-400"></i>
+            </div>
+            <select
+              id="userclass"
+              name="userclass"
+              required
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-focus appearance-none"
+            >
+              <option value="">Select your role</option>
+              <option value="student">Student</option>
+              <option value="tutor">Tutor</option>
+              <option value="admin">Admin</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+              <i class="fas fa-chevron-down text-gray-400"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label for="remember-me" class="ml-2 block text-sm text-gray-700">Remember me</label>
+          </div>
+          <a href="#" class="text-sm text-blue-600 hover:text-blue-500">Forgot password?</a>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors btn-primary font-medium"
+        >
+          <i class="fas fa-sign-in-alt mr-2"></i>Sign in
+        </button>
+      </form>
+
+      <div class="relative my-8">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-200"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">New to P2P Learn?</span>
+        </div>
+      </div>
+
+      <!-- Signup Links -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a
+          href="/signup"
+          class="bg-gray-100 text-gray-800 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors signup-option text-center flex flex-col items-center"
+        >
+          <i class="fas fa-user-graduate text-blue-600 text-xl mb-2"></i>
+          <span class="font-medium">Sign up as Student</span>
+          <span class="text-xs text-gray-500 mt-1">Learn from peers</span>
+        </a>
+        <a
+          href="/profile"
+          class="bg-gray-100 text-gray-800 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors signup-option text-center flex flex-col items-center"
+        >
+          <i class="fas fa-chalkboard-teacher text-green-600 text-xl mb-2"></i>
+          <span class="font-medium">Sign up as Tutor</span>
+          <span class="text-xs text-gray-500 mt-1">Share your knowledge</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

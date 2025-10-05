@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peer2Prep - Learn Together, Grow Together</title>
+
+  <!-- DaisyUI & TailwindCSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/daisyui/4.4.19/full.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet" />
+  <meta name="description" content="Peer2Prep connects students with campus tutors. Learn together. Grow together.">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <div class="navbar bg-base-100 shadow-lg">
+    <div class="navbar-start">
+      <a href="/" class="btn btn-ghost normal-case text-xl">Peer2Prep</a>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <div class="hero min-h-[70vh] bg-base-200">
+    <div class="hero-content text-center">
+      <div class="max-w-md">
+        <h1 class="text-5xl font-bold">Learn Together, Grow Together</h1>
+        <p class="py-6">
+          Peer2Prep connects you with fellow students who understand your
+          academic journey. Find tutors from your campus, make friends, and
+          excel in your studies.
+        </p>
+        <div class="flex gap-4 justify-center">
+          <a href="/login" class="btn btn-primary">Get Started</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Cards -->
+  <section class="py-20">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="grid md:grid-cols-3 gap-6">
+
+        <!-- Card 1 -->
+        <div class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300">
+          <div class="card-body items-center text-center">
+            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-primary/10 mb-4">
+              <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h2 class="card-title">Peer Learning</h2>
+            <p>Learn from students who've mastered your subjects. They understand your challenges and speak your language.</p>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300">
+          <div class="card-body items-center text-center">
+            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-primary/10 mb-4">
+              <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h2 class="card-title">Study Community</h2>
+            <p>Join study groups, make friends, and build connections with people who share your academic interests.</p>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-transform duration-300">
+          <div class="card-body items-center text-center">
+            <div class="w-16 h-16 flex items-center justify-center rounded-full bg-primary/10 mb-4">
+              <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 class="card-title">Flexible Schedule</h2>
+            <p>Book sessions that fit your schedule. Study when and where it works best for you.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="bg-base-200 py-20">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h2 class="text-3xl font-bold mb-12">How Peer2Prep Works</h2>
+      <ul class="steps steps-vertical lg:steps-horizontal w-full">
+        <li class="step step-primary">Create Account</li>
+        <li class="step step-primary">Find Your Tutor</li>
+        <li class="step step-primary">Schedule Session</li>
+        <li class="step step-primary">Start Learning</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="hero min-h-[40vh]">
+    <div class="hero-content text-center">
+      <div class="max-w-md">
+        <h2 class="text-3xl font-bold">Ready to Get Started?</h2>
+        <p class="py-6">
+          Join thousands of students already using Peer2Prep to achieve their
+          academic goals.
+        </p>
+        <a href="/login" class="btn btn-primary">Get Started</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer p-10 bg-base-200 text-base-content">
+    <div>
+      <span class="footer-title">Services</span>
+      <a class="link link-hover">Find Tutors</a>
+      <a class="link link-hover">Become a Tutor</a>
+      <a class="link link-hover">Study Groups</a>
+    </div>
+    <div>
+      <span class="footer-title">Company</span>
+      <a class="link link-hover">About us</a>
+      <a class="link link-hover">Contact</a>
+      <a class="link link-hover">Blog</a>
+    </div>
+    <div>
+      <span class="footer-title">Legal</span>
+      <a class="link link-hover">Terms of use</a>
+      <a class="link link-hover">Privacy policy</a>
+      <a class="link link-hover">Cookie policy</a>
+    </div>
+  </footer>
+
+</body>
+</html>

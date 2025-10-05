@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Messages</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex justify-center items-start pt-10 relative">
+
+  <!-- Dashboard Button -->
+  <div class="fixed top-4 right-4 z-50">
+    <a href="/dash" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2 rounded-lg shadow hover:from-green-600 hover:to-emerald-700 transition duration-200">
+      🏠 Dashboard
+    </a>
+  </div>
+
+  <!-- Message Container -->
+  <div class="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 mx-4">
+
+    <div class="flex justify-between items-center px-4 py-3 border-b">
+      <h1 class="text-lg font-bold text-gray-800">Messages</h1>
+    </div>
+
+    <!-- Message List -->
+    <div class="divide-y">
+      <% if (messages && messages.length > 0) { %>
+        <% messages.forEach(msg => { %>
+          <a href="/messages/<%= msg.senderId %>" class="block transition 
+            <% if (msg.unseenCount > 0) { %>bg-blue-50 hover:bg-blue-100<% } else { %>hover:bg-gray-50<% } %>">
+            <div class="px-4 py-3 flex items-start space-x-3">
+              
+              <!-- Chat Icon Instead of Avatar -->
+              <div class="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-white shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 3.866-3.582 7-8 7a8.013 8.013 0 01-4.9-1.692L3 19l1.5-4.5A7.96 7.96 0 013 12c0-3.866 3.582-7 8-7s8 3.134 8 7z" />
+                </svg>
+              </div>
+
+              <!-- Message Preview -->
+              <div class="flex-1">
+                <div class="flex justify-between items-center">
+                  <p class="text-sm font-semibold text-gray-900"><%= msg.username %></p>
+                  <% if (msg.timestamp) { %>
+                    <span class="text-xs text-gray-400">
+                      <%= new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
+                    </span>
+                  <% } %>
+                </div>
+                <div class="flex justify-between items-center">
+                  <p class="text-xs text-gray-600 truncate"><%= msg.text %></p>
+                  <% if (msg.unseenCount > 0) { %>
+                    <span class="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      <%= msg.unseenCount %>
+                    </span>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </a>
+        <% }) %>
+      <% } else { %>
+        <div class="text-center text-gray-500 text-sm py-10">No messages yet</div>
+      <% } %>
+    </div>
+
+  </div>
+  <script>
+  async function refreshMessages() {
+    try {
+      const res = await fetch('/messages/student/inbox');
+      const data = await res.text();
+      document.getElementById('message-list').innerHTML = data;
+    } catch (err) {
+      console.error("❌ Error refreshing messages", err);
+    }
+  }
+
+  // Poll every 10 seconds
+  setInterval(refreshMessages, 10000);
+</script>
+
+
+</body>
+</html>

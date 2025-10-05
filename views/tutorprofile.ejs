@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Update Tutor Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen relative">
+
+  <!-- ✅ Dashboard Button -->
+  <div class="absolute top-4 right-4">
+    <a href="/dashboard" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:from-blue-600 hover:to-indigo-700 transition duration-200">
+      🏠 Dashboard
+    </a>
+  </div>
+
+  <!-- ✅ Update Profile Card -->
+  <div class="bg-white shadow-xl rounded-xl p-8 max-w-md w-full">
+    <h2 class="text-2xl font-bold mb-6 text-center text-blue-600">Update Tutor Profile</h2>
+
+    <form action="/update" method="POST" enctype="multipart/form-data" class="space-y-5">
+      
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Name</label>
+        <input type="text" name="name" value="<%= tutor.name %>" required
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Phone</label>
+        <input type="number" name="phone" value="<%= tutor.phone %>" required
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <!-- ✅ Show current image -->
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Current Profile Image</label>
+        <img src="/<%= tutor.image %>" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover mb-2" />
+      </div>
+
+      <!-- ✅ File upload input -->
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Upload New Image</label>
+        <input type="file" name="file"
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+      </div>
+
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Skill</label>
+        <input type="text" name="skill" value="<%= tutor.skills %>" required
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div class="text-center">
+        <button type="submit"
+                class="bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+          Update Profile
+        </button>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= course.courseTitle %> | View Course</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .progress-ring {
+      transition: stroke-dashoffset 0.3s;
+    }
+    .video-card {
+      transition: all 0.3s ease;
+    }
+    .video-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .active-video {
+      border-left: 4px solid #3b82f6;
+      background-color: #eff6ff;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans leading-relaxed">
+  <!-- Header -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold text-gray-800 hidden md:block">Course Details</h1>
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+          <i class="fas fa-user text-blue-600"></i>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-5xl mx-auto py-8 px-4">
+    <!-- Course Header -->
+    <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+      <div class="relative">
+        <img src="/<%= course.thumbnail %>" class="w-full h-64 object-cover" alt="Course Thumbnail">
+        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
+        <div class="absolute bottom-4 left-6 text-white">
+          <h1 class="text-3xl font-bold mb-1"><%= course.courseTitle %></h1>
+          <p class="text-gray-200"><%= course.shortDescription %></p>
+        </div>
+        <div class="absolute top-4 right-4">
+          <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Active</span>
+        </div>
+      </div>
+
+      <!-- Course Details -->
+      <div class="p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+          <i class="fas fa-info-circle text-blue-500 mr-2"></i> About This Course
+        </h2>
+        <p class="text-gray-700 mb-6 leading-relaxed"><%= course.detailedDescription %></p>
+      </div>
+    </div>
+
+    <!-- Videos Section -->
+    <div class="flex flex-col md:flex-row gap-8">
+      <!-- Video List -->
+      <div class="w-full md:w-1/3">
+        <div class="bg-white rounded-xl shadow-md p-5 sticky top-6">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+            <i class="fas fa-play-circle text-blue-500 mr-2"></i> Course Content
+          </h2>
+          <p class="text-sm text-gray-600 mb-4"><%= course.videos.length %> lessons</p>
+          
+          <div class="overflow-y-auto max-h-96">
+            <% course.videos.forEach((video, index) => { %>
+              <div class="video-item mb-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 transition <%= index === 0 ? 'active-video' : '' %>" 
+                   data-index="<%= index %>" 
+                   data-path="/<%= video.videoPath %>" 
+                   data-title="<%= video.title %>">
+                <div class="flex items-start">
+                  <div class="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-1">
+                    <span class="text-sm font-semibold"><%= index + 1 %></span>
+                  </div>
+                  <div class="flex-1">
+                    <h3 class="font-medium text-gray-800 text-sm mb-1"><%= video.title %></h3>
+                    <div class="flex items-center text-xs text-gray-500">
+                      <i class="far fa-clock mr-1"></i> <%= video.duration %>
+                      <span class="mx-2">•</span>
+                      <i class="far fa-play-circle mr-1"></i> Video
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Player -->
+      <div class="w-full md:w-2/3">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <!-- FIXED SIZE VIDEO -->
+          <div class="bg-black w-full h-[100px] flex items-center justify-center">
+            <video id="mainPlayer" controls class="w-full h-full object-contain">
+              <source src="/<%= course.videos[0].videoPath %>" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          
+          <div class="p-6">
+            <h2 id="currentVideoTitle" class="text-2xl font-bold text-gray-800 mb-2"><%= course.videos[0].title %></h2>
+            <p id="currentVideoDescription" class="text-gray-600 mb-6">Now watching: <%= course.videos[0].title %></p>
+            
+            <div class="flex justify-between items-center border-t pt-4">
+              <button id="prevBtn" class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i> Previous
+              </button>
+              
+              <button id="nextBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center">
+                Next <i class="fas fa-arrow-right ml-2"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Feedback Section -->
+    <div class="mt-12">
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="p-6 border-b">
+          <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-star text-yellow-500 mr-3"></i>
+            Student Feedback
+          </h2>
+          <p class="text-gray-600 mt-2">
+            <% if (totalRatings > 0) { %>
+              <%= totalRatings %> <%= totalRatings === 1 ? 'student has' : 'students have' %> rated this course
+            <% } else { %>
+              No students have rated this course yet
+            <% } %>
+          </p>
+        </div>
+
+        <!-- Feedback List -->
+        <div class="p-6">
+          <% if (ratings && ratings.length > 0) { %>
+            <div class="space-y-6">
+              <% ratings.forEach(function(rating) { %>
+                <div class="border border-gray-200 rounded-lg p-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                        <% if (rating.userId && rating.userId.avatar && rating.userId.avatar !== 'uploads/default-avatar.jpg') { %>
+                          <img src="/<%= rating.userId.avatar %>" alt="Student" class="w-10 h-10 rounded-full object-cover">
+                        <% } else { %>
+                          <i class="fas fa-user text-blue-600"></i>
+                        <% } %>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-800">
+                          <%= rating.userName || (rating.userId && rating.userId.name) || (rating.userId && rating.userId.username) || 'Anonymous Student' %>
+                        </h4>
+                        <div class="flex items-center text-yellow-400 mt-1">
+                          <% for(let i = 1; i <= 5; i++) { %>
+                            <% if (i <= rating.rating) { %>
+                              <i class="fas fa-star"></i>
+                            <% } else { %>
+                              <i class="far fa-star"></i>
+                            <% } %>
+                          <% } %>
+                          <span class="ml-2 text-sm text-gray-500">
+                            Rated <%= rating.rating %> stars
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <span class="text-sm text-gray-500">
+                      <%= new Date(rating.createdAt).toLocaleDateString() %>
+                    </span>
+                  </div>
+                  
+                  <% if (rating.review && rating.review.trim() !== '') { %>
+                    <div class="bg-gray-50 rounded-lg p-4 mt-3">
+                      <p class="text-gray-700">
+                        "<%= rating.review %>"
+                      </p>
+                    </div>
+                  <% } else { %>
+                    <p class="text-gray-500 italic">No written feedback provided</p>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="text-center py-12">
+              <i class="fas fa-star text-gray-300 text-6xl mb-4"></i>
+              <h3 class="text-xl font-semibold text-gray-600 mb-2">No Feedback Yet</h3>
+              <p class="text-gray-500">Students haven't rated this course yet.</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watching JS -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const videoItems = document.querySelectorAll('.video-item');
+      const mainPlayer = document.getElementById('mainPlayer');
+      const currentVideoTitle = document.getElementById('currentVideoTitle');
+      const currentVideoDescription = document.getElementById('currentVideoDescription');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      
+      let currentVideoIndex = 0;
+
+      // Update video player with correct video
+      function updateVideoPlayer() {
+        const activeItem = videoItems[currentVideoIndex];
+        const videoPath = activeItem.getAttribute('data-path');
+        const videoTitle = activeItem.getAttribute('data-title');
+        
+        mainPlayer.src = videoPath;
+        mainPlayer.play();
+        
+        currentVideoTitle.textContent = videoTitle;
+        currentVideoDescription.textContent = "Now watching: " + videoTitle;
+      }
+
+      // Update active state
+      function updateActiveVideo() {
+        videoItems.forEach(v => v.classList.remove('active-video'));
+        videoItems[currentVideoIndex].classList.add('active-video');
+      }
+
+      // Click on playlist item
+      videoItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+          currentVideoIndex = index;
+          updateActiveVideo();
+          updateVideoPlayer();
+        });
+      });
+
+      // Prev button
+      prevBtn.addEventListener('click', () => {
+        if (currentVideoIndex > 0) {
+          currentVideoIndex--;
+          updateActiveVideo();
+          updateVideoPlayer();
+        }
+      });
+
+      // Next button
+      nextBtn.addEventListener('click', () => {
+        if (currentVideoIndex < videoItems.length - 1) {
+          currentVideoIndex++;
+          updateActiveVideo();
+          updateVideoPlayer();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

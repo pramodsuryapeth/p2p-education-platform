@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard - P2P Education Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    .live-indicator {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    .course-card {
+      transition: all 0.3s ease;
+    }
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    .notice-card {
+      border-left: 4px solid;
+      transition: all 0.3s ease;
+    }
+    .notice-card:hover {
+      transform: translateX(5px);
+    }
+    .flash-message {
+      transition: all 0.5s ease-in-out;
+    }
+    .flash-hide {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+
+  <!-- Header -->
+  <header class="bg-white shadow-lg border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <!-- Logo and Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="bg-blue-500 text-white p-2 rounded-lg">
+            <i class="fas fa-graduation-cap text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800">P2P Education Platform</h1>
+            <p class="text-sm text-gray-500">Learn from expert tutors</p>
+          </div>
+        </div>
+
+        <!-- Navigation and Actions -->
+        <div class="flex items-center space-x-4">
+          <!-- Search Bar -->
+          <div class="relative hidden md:block">
+            <input 
+              type="text" 
+              id="courseSearch" 
+              placeholder="Search courses..." 
+              class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              onkeyup="filterCourses()"
+            >
+            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+          </div>
+
+          <!-- Messages Icon -->
+          <a href="/messages/student/inbox" class="relative bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition" title="Messages">
+            <i class="fas fa-envelope"></i>
+          </a>
+
+          <!-- Logout -->
+          <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center space-x-2">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="md:hidden bg-white border-b border-gray-200 p-4">
+    <div class="relative">
+      <input 
+        type="text" 
+        id="mobileCourseSearch" 
+        placeholder="Search courses..." 
+        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+        onkeyup="filterCourses()"
+      >
+      <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- Welcome Banner -->
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white mb-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div>
+          <h2 class="text-2xl font-bold mb-2">Welcome to Your Learning Dashboard!</h2>
+          <p class="text-blue-100">Discover new courses and join live sessions with expert tutors.</p>
+        </div>
+        <div class="mt-4 md:mt-0">
+          <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
+            <p class="text-sm">Ready to learn something new today?</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tutor Notices Section -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center space-x-2">
+          <i class="fas fa-bullhorn text-yellow-500"></i>
+          <span>Tutor Announcements</span>
+        </h2>
+      </div>
+      
+      <!-- Notices List -->
+      <div id="noticesContainer" class="space-y-4">
+        <% if (notices && notices.length > 0) { %>
+          <% notices.forEach(notice => { %>
+            <div class="notice-card bg-gray-50 border-l-4 border-<%= notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue' %>-500 p-4 rounded-r-lg">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-semibold text-gray-800"><%= notice.title %></h3>
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs px-2 py-1 rounded-full bg-<%= notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue' %>-100 text-<%= notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue' %>-800">
+                    <%= notice.priority.toUpperCase() %>
+                  </span>
+                  <span class="text-xs text-gray-500">
+                    by <%= notice.tutorId?.name || 'Tutor' %>
+                  </span>
+                </div>
+              </div>
+              <p class="text-gray-600 text-sm mb-2"><%= notice.message %></p>
+              <div class="flex justify-between items-center text-xs text-gray-500">
+                <span>Posted: <%= new Date(notice.createdAt).toLocaleDateString() %></span>
+              </div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-bullhorn text-4xl mb-3 text-gray-300"></i>
+            <p>No announcements from tutors yet</p>
+            <p class="text-gray-400 text-sm mt-1">Tutors will post important updates here</p>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Live Tutors Section -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center space-x-2">
+          <i class="fas fa-broadcast-tower text-red-500"></i>
+          <span>Live Tutors Now</span>
+        </h2>
+        <span class="text-sm text-gray-500" id="liveCount">0 tutors live</span>
+      </div>
+      
+      <div id="liveTutorsContainer" class="flex space-x-6 overflow-x-auto pb-4">
+        <!-- Content will be populated by JavaScript -->
+        <div class="text-center w-full py-8">
+          <i class="fas fa-broadcast-tower text-gray-300 text-4xl mb-3"></i>
+          <p class="text-gray-500 text-lg">Loading live tutors...</p>
+          <p class="text-gray-400 text-sm mt-1">Please wait while we check for live sessions</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500">Total Courses</p>
+            <p class="text-2xl font-bold text-gray-800"><%= courses.length %></p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-lg">
+            <i class="fas fa-book text-blue-500 text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500">Live Sessions</p>
+            <p class="text-2xl font-bold text-gray-800" id="liveSessionsCount">0</p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-lg">
+            <i class="fas fa-video text-green-500 text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500">New Notices</p>
+            <p class="text-2xl font-bold text-gray-800" id="noticesCountCard"><%= notices ? notices.length : 0 %></p>
+          </div>
+          <div class="bg-yellow-100 p-3 rounded-lg">
+            <i class="fas fa-bullhorn text-yellow-500 text-xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Courses Section -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center space-x-2">
+          <i class="fas fa-play-circle text-blue-500"></i>
+          <span>Available Courses</span>
+        </h2>
+        <div class="text-sm text-gray-500">
+          <span id="coursesCount"><%= courses.length %></span> courses available
+        </div>
+      </div>
+
+      <!-- Courses Grid -->
+      <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <% if (courses.length > 0) { %>
+          <% courses.forEach(course => { %>
+            <a href="/studentviewcourse/<%= course._id %>" class="course-card bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 block">
+              <!-- Course Thumbnail -->
+              <div class="relative">
+                <img src="/<%= course.thumbnail %>" alt="Course Thumbnail" class="w-full h-48 object-cover">
+                <div class="absolute top-3 right-3 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                  <i class="fas fa-clock mr-1"></i>
+                  <% if (course.duration) { %>
+                    <%= course.duration %>
+                  <% } else { %>
+                    2h 30m
+                  <% } %>
+                </div>
+              </div>
+              
+              <!-- Course Content -->
+              <div class="p-4">
+                <div class="flex items-start justify-between mb-2">
+                  <h3 class="font-semibold text-gray-800 text-sm course-title line-clamp-2"><%= course.courseTitle %></h3>
+                </div>
+                
+                <p class="text-gray-600 text-xs mb-3 course-description line-clamp-2"><%= course.shortDescription %></p>
+                
+                <!-- Rating -->
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center space-x-1">
+                    <div class="flex text-yellow-400">
+                      <% for(let i = 1; i <= 5; i++) { %>
+                        <% if (i <= Math.floor(course.averageRating || 0)) { %>
+                          <i class="fas fa-star text-xs"></i>
+                        <% } else if (i === Math.ceil(course.averageRating || 0) && (course.averageRating || 0) % 1 !== 0) { %>
+                          <i class="fas fa-star-half-alt text-xs"></i>
+                        <% } else { %>
+                          <i class="far fa-star text-xs text-gray-300"></i>
+                        <% } %>
+                      <% } %>
+                    </div>
+                    <span class="text-gray-800 font-medium text-xs ml-1"><%= course.averageRating || '0.0' %></span>
+                  </div>
+                  <% if (course.ratingCount > 0) { %>
+                    <span class="text-gray-500 text-xs">(<%= course.ratingCount %>)</span>
+                  <% } else { %>
+                    <span class="text-gray-400 text-xs">No ratings</span>
+                  <% } %>
+                </div>
+                
+                <!-- Tutor Info -->
+                <div class="flex items-center space-x-2 pt-3 border-t border-gray-100">
+                  <div class="w-6 h-6 rounded-full overflow-hidden">
+                    <img src="/<%= course.tutorId.image %>" alt="Tutor" class="w-full h-full object-cover">
+                  </div>
+                  <span class="text-gray-600 text-xs"><%= course.tutorId.name %></span>
+                </div>
+              </div>
+            </a>
+          <% }); %>
+        <% } else { %>
+          <div class="col-span-full text-center py-12">
+            <i class="fas fa-book-open text-gray-300 text-5xl mb-4"></i>
+            <p class="text-gray-500 text-lg">No courses available yet</p>
+            <p class="text-gray-400 text-sm mt-1">Courses will appear here once tutors upload them</p>
+          </div>
+        <% } %>
+      </div>
+    </section>
+  </main>
+
+  <!-- Flash Messages -->
+  <% if (successMessage && successMessage.length > 0) { %>
+    <div class="flash-message fixed top-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
+      <i class="fas fa-check-circle"></i>
+      <span><%= successMessage %></span>
+      <button class="flash-close ml-2 hover:text-green-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  <% } %>
+
+  <% if (errorMessage && errorMessage.length > 0) { %>
+    <div class="flash-message fixed top-5 right-5 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
+      <i class="fas fa-exclamation-circle"></i>
+      <span><%= errorMessage %></span>
+      <button class="flash-close ml-2 hover:text-red-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  <% } %>
+
+  <!-- Scripts -->
+  <script>
+    const socket = io();
+
+    // Store current live tutors state
+    let currentLiveTutors = [];
+    let currentNotices = [];
+
+    // Function to render live tutors
+    function renderLiveTutors(liveTutors) {
+      const container = document.getElementById('liveTutorsContainer');
+      const liveCount = document.getElementById('liveCount');
+      const liveSessionsCount = document.getElementById('liveSessionsCount');
+      
+      console.log('Rendering live tutors:', liveTutors);
+      
+      container.innerHTML = '';
+      liveCount.textContent = `${liveTutors.length} tutors live`;
+      liveSessionsCount.textContent = liveTutors.length;
+
+      if (liveTutors.length === 0) {
+        container.innerHTML = `
+          <div class="text-center w-full py-8">
+            <i class="fas fa-broadcast-tower text-gray-300 text-4xl mb-3"></i>
+            <p class="text-gray-500 text-lg">No tutors are live right now</p>
+            <p class="text-gray-400 text-sm mt-1">Check back later for live sessions</p>
+          </div>
+        `;
+        return;
+      }
+
+      liveTutors.forEach(tutor => {
+        const div = document.createElement('div');
+        div.className = 'flex-shrink-0 cursor-pointer transform hover:scale-105 transition';
+        div.onclick = () => joinLive(tutor._id);
+        div.innerHTML = `
+          <div class="relative">
+            <div class="w-20 h-20 rounded-full border-3 border-red-500 overflow-hidden shadow-lg">
+              <img src="/${tutor.image}" alt="${tutor.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full live-indicator">
+              LIVE
+            </div>
+          </div>
+          <div class="text-center mt-2">
+            <p class="text-sm font-medium text-gray-800">${tutor.name}</p>
+            <p class="text-xs text-gray-500 truncate w-20">${tutor.skills || 'Tutor'}</p>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+      
+      currentLiveTutors = liveTutors;
+    }
+
+    // Function to render notices
+    function renderNotices(notices) {
+      const container = document.getElementById('noticesContainer');
+      const noticesCount = document.getElementById('noticesCount');
+      const noticesCountCard = document.getElementById('noticesCountCard');
+      
+      noticesCount.textContent = `${notices.length} notices`;
+      noticesCountCard.textContent = notices.length;
+
+      if (notices.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-bullhorn text-4xl mb-3 text-gray-300"></i>
+            <p>No announcements from tutors yet</p>
+            <p class="text-gray-400 text-sm mt-1">Tutors will post important updates here</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = notices.map(notice => `
+        <div class="notice-card bg-gray-50 border-l-4 border-${notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue'}-500 p-4 rounded-r-lg">
+          <div class="flex justify-between items-start mb-2">
+            <h3 class="font-semibold text-gray-800">${notice.title}</h3>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs px-2 py-1 rounded-full bg-${notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue'}-100 text-${notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue'}-800">
+                ${notice.priority.toUpperCase()}
+              </span>
+              <span class="text-xs text-gray-500">
+                by ${notice.tutorId?.name || 'Tutor'}
+              </span>
+            </div>
+          </div>
+          <p class="text-gray-600 text-sm mb-2">${notice.message}</p>
+          <div class="flex justify-between items-center text-xs text-gray-500">
+            <span>Posted: ${new Date(notice.createdAt).toLocaleDateString()}</span>
+            <span>Expires: ${new Date(notice.deleteDate).toLocaleDateString()}</span>
+          </div>
+        </div>
+      `).join('');
+      
+      currentNotices = notices;
+    }
+
+    // Function to fetch live tutors from server
+    async function fetchLiveTutors() {
+      try {
+        const response = await fetch('/live-tutors');
+        const liveTutors = await response.json();
+        console.log('Fetched live tutors from API:', liveTutors);
+        renderLiveTutors(liveTutors);
+      } catch (err) {
+        console.error('Error fetching live tutors:', err);
+      }
+    }
+
+    // Function to fetch notices from server
+    async function fetchNotices() {
+      try {
+        const response = await fetch('/student-notices');
+        const notices = await response.json();
+        console.log('Fetched notices from API:', notices);
+        renderNotices(notices);
+      } catch (err) {
+        console.error('Error fetching notices:', err);
+      }
+    }
+
+    // Flash Message Auto-disappearance
+    function initializeFlashMessages() {
+      const flashMessages = document.querySelectorAll('.flash-message');
+      
+      flashMessages.forEach(message => {
+        // Add close button functionality
+        const closeBtn = message.querySelector('.flash-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            hideFlashMessage(message);
+          });
+        }
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          hideFlashMessage(message);
+        }, 5000);
+      });
+    }
+
+    function hideFlashMessage(message) {
+      message.classList.add('flash-hide');
+      setTimeout(() => {
+        if (message.parentNode) {
+          message.parentNode.removeChild(message);
+        }
+      }, 500);
+    }
+
+    // Join student dashboard room to receive live updates
+    socket.emit('joinStudentDashboard');
+
+    // Update live tutors in real-time from socket
+    socket.on('liveTutorsUpdate', (liveTutorIds) => {
+      console.log('Received live tutor IDs from socket:', liveTutorIds);
+      
+      if (liveTutorIds && liveTutorIds.length > 0) {
+        fetchLiveTutors();
+      } else {
+        renderLiveTutors([]);
+      }
+    });
+
+    // Also receive full tutor data updates
+    socket.on('liveTutorsData', (liveTutors) => {
+      console.log('Received full live tutors data:', liveTutors);
+      renderLiveTutors(liveTutors);
+    });
+
+    // Receive real-time notice updates
+    socket.on('newNotice', (newNotice) => {
+      console.log('Received new notice:', newNotice);
+      
+      // Add new notice to the beginning of the list
+      const updatedNotices = [newNotice, ...currentNotices];
+      renderNotices(updatedNotices);
+      
+      // Show a temporary notification
+      showNewNoticeNotification(newNotice);
+    });
+
+    // Receive notice deletion updates
+    socket.on('noticeDeleted', (deletedNoticeId) => {
+      console.log('Notice deleted:', deletedNoticeId);
+      
+      // Remove the deleted notice
+      const updatedNotices = currentNotices.filter(notice => notice._id !== deletedNoticeId);
+      renderNotices(updatedNotices);
+    });
+
+    // Show notification for new notice
+    function showNewNoticeNotification(notice) {
+      const notification = document.createElement('div');
+      notification.className = 'flash-message fixed top-5 right-5 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      notification.innerHTML = `
+        <i class="fas fa-bullhorn"></i>
+        <span>New announcement: ${notice.title}</span>
+        <button class="flash-close ml-2 hover:text-blue-200">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Initialize close functionality
+      const closeBtn = notification.querySelector('.flash-close');
+      closeBtn.addEventListener('click', () => {
+        hideFlashMessage(notification);
+      });
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        hideFlashMessage(notification);
+      }, 5000);
+    }
+
+    // Filter courses
+    function filterCourses() {
+      const searchInput = document.getElementById('mobileCourseSearch') || document.getElementById('courseSearch');
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const courseItems = document.querySelectorAll('.course-card');
+
+      courseItems.forEach(item => {
+        const title = item.querySelector('.course-title')?.textContent.toLowerCase() || "";
+        const desc = item.querySelector('.course-description')?.textContent.toLowerCase() || "";
+        item.style.display = (title.includes(searchTerm) || desc.includes(searchTerm)) ? 'block' : 'none';
+      });
+    }
+
+    // Open live tutor session
+    function joinLive(tutorId) {
+      const isTutorLive = currentLiveTutors.some(tutor => tutor._id === tutorId);
+      
+      if (!isTutorLive) {
+        alert('This tutor is no longer live. Please refresh the page to see current live sessions.');
+        return;
+      }
+      
+      const windowFeatures = 'width=1000,height=700,scrollbars=no,resizable=yes,location=no,menubar=no,toolbar=no';
+      window.open(`/student-live/${tutorId}`, "LiveClass", windowFeatures);
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial fetch of live tutors and notices
+      fetchLiveTutors();
+      fetchNotices();
+      
+      // Initialize flash messages
+      initializeFlashMessages();
+    });
+
+    // Refresh data periodically (fallback)
+    setInterval(() => {
+      fetchLiveTutors();
+      fetchNotices();
+    }, 30000); // Refresh every 30 seconds
+
+    // Also fetch when page becomes visible again
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        fetchLiveTutors();
+        fetchNotices();
+      }
+    });
+  </script>
+</body>
+</html>

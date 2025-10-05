@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Uploaded Courses</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  
+  <!-- Dashboard Button (top-right) -->
+  <div class="absolute top-4 right-4">
+    <a href="/dashboard" 
+       class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition">
+      Dashboard
+    </a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto p-6">
+    <h1 class="text-3xl font-bold text-center mb-10">📚 My Uploaded Courses</h1>
+
+    <% if (courses.length === 0) { %>
+      <p class="text-center text-gray-600">No courses uploaded yet.</p>
+    <% } else { %>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <% courses.forEach(course => { %>
+          <div class="bg-white shadow rounded-lg overflow-hidden hover:shadow-xl transition">
+            <a href="/viewcourse/<%= course._id %>">
+              <img src="/<%= course.thumbnail %>" class="w-full h-48 object-cover" alt="Course Thumbnail">
+            </a>
+            <div class="p-4">
+              <h2 class="text-lg font-semibold"><%= course.courseTitle %></h2>
+              <p class="text-sm text-gray-600 mt-1"><%= course.shortDescription %></p>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+
+</body>
+</html>

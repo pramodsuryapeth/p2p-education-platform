@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-6 font-sans">
+
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8 border-b pb-4">
+      <h1 class="text-4xl font-extrabold text-blue-700 tracking-tight">Admin Dashboard</h1>
+      <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm">Logout</a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition-all duration-200 border-l-4 border-yellow-400">
+        <div class="flex items-center gap-4">
+          <div class="bg-yellow-100 text-yellow-500 p-3 rounded-full">📌</div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-700">Pending Tutors</h2>
+            <p class="text-4xl font-bold text-yellow-500"><%= pendingCount %></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition-all duration-200 border-l-4 border-green-500">
+        <div class="flex items-center gap-4">
+          <div class="bg-green-100 text-green-500 p-3 rounded-full">✅</div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-700">Approved Tutors</h2>
+            <p class="text-4xl font-bold text-green-500"><%= approvedCount %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Tutors Section -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">⏳ Pending Tutor Requests</h2>
+      <% if (pendingTutors.length === 0) { %>
+        <div class="bg-yellow-50 text-yellow-800 p-4 rounded-lg border border-yellow-200">
+          No pending tutor requests.
+        </div>
+      <% } else { %>
+        <div class="flex flex-wrap gap-6">
+          <% pendingTutors.forEach(tutor => { %>
+            <div class="w-72 bg-zinc-800 text-white rounded-lg shadow-lg overflow-hidden">
+              <div class="w-full h-48 relative">
+                <img src="<%= tutor.image || '/uploads/default-avatar.jpg' %>" alt="Tutor Photo" class="absolute inset-0 w-full h-full object-cover">
+              </div>
+              <div class="p-4 text-center">
+                <h3 class="text-xl font-semibold mb-1"><%= tutor.name %></h3>
+                <p class="text-sm text-gray-300 mb-1"><%= tutor.skills %></p>
+                <p class="text-sm text-gray-400 mb-4"><%= tutor.phone %></p>
+                <div class="flex justify-center gap-2">
+                  <a href="/admin/approve/tutor/<%= tutor._id %>" class="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-lg shadow-sm">Approve</a>
+                  <a href="/admin/reject/tutor/<%= tutor._id %>" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg shadow-sm">Reject</a>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+    <!-- Approved Tutors Section -->
+    <section>
+      <h2 class="text-2xl font-bold mb-4 text-green-700 flex items-center gap-2">🏆 Approved Tutors</h2>
+      <% if (approvedTutors.length === 0) { %>
+        <div class="bg-gray-100 text-gray-700 p-4 rounded-lg border border-gray-200">
+          No approved tutors yet.
+        </div>
+      <% } else { %>
+        <div class="flex flex-wrap gap-6">
+          <% approvedTutors.forEach(tutor => { %>
+            <div class="w-72 bg-zinc-800 text-white rounded-lg shadow-lg overflow-hidden">
+              <div class="w-full h-48 relative">
+                <img src="<%= tutor.image || '/uploads/default-avatar.jpg' %>" alt="Tutor Photo" class="absolute inset-0 w-full h-full object-cover">
+              </div>
+              <div class="p-4 text-center">
+                <h3 class="text-xl font-semibold mb-1"><%= tutor.name %></h3>
+                <p class="text-sm text-gray-300 mb-1"><%= tutor.skills %></p>
+                <p class="text-sm text-gray-400 mb-4"><%= tutor.phone %></p>
+                <div class="flex justify-center gap-2">
+                  <a href="/admin/reject/tutor/<%= tutor._id %>" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg shadow-sm">Reject</a>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+  </div>
+
+</body>
+</html>

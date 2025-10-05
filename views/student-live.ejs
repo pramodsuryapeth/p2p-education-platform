@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Class - <%= tutor.name %></title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .video-container {
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white">
+  <div class="container mx-auto p-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <h1 class="text-2xl font-bold">🎥 <%= tutor.name %>'s Live Class</h1>
+        <p class="text-gray-400" id="streamStatus">Connecting...</p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div id="viewerCount" class="bg-gray-800 px-3 py-1 rounded">
+          👥 <span>0</span> viewers
+        </div>
+        <button onclick="window.close()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+          Leave
+        </button>
+      </div>
+    </div>
+
+    <!-- Video Area -->
+    <div class="video-container mb-4">
+      <video 
+        id="studentVideo" 
+        autoplay 
+        playsinline 
+        controls
+        class="w-full h-auto max-h-96"
+      >
+        Your browser doesn't support video playback.
+      </video>
+    </div>
+
+    <!-- Connection Info -->
+    <div class="bg-gray-800 rounded-lg p-4">
+      <h3 class="font-semibold mb-2">Connection Information</h3>
+      <div id="connectionInfo" class="text-sm space-y-1">
+        <div>Status: <span id="connectionStatus" class="text-yellow-500">Connecting...</span></div>
+        <div>ICE State: <span id="iceState">-</span></div>
+        <div>Signaling State: <span id="signalingState">-</span></div>
+        <div>Video: <span id="videoStatus" class="text-yellow-500">Loading...</span></div>
+        <div>Audio: <span id="audioStatus" class="text-yellow-500">Loading...</span></div>
+      </div>
+    </div>
+
+    <!-- Audio Controls -->
+    <div class="bg-gray-800 rounded-lg p-4 mt-4">
+      <h3 class="font-semibold mb-3">Audio Controls</h3>
+      <div class="flex space-x-4 items-center">
+        <button id="studentMuteBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+          🔇 Mute
+        </button>
+        <button id="volumeUpBtn" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition">
+          🔊 Volume Up
+        </button>
+        <button id="volumeDownBtn" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition">
+          🔈 Volume Down
+        </button>
+        <div class="text-sm">
+          Volume: <span id="volumeLevel">100%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const tutorId = "<%= tutor._id %>";
+    const studentId = "<%= user.id %>";
+    const video = document.getElementById("studentVideo");
+    
+    let peerConnection = null;
+    let stream = null;
+    let currentVolume = 1.0;
+
+    // Verify we have the correct IDs
+    console.log("=== STUDENT CONNECTION INFO ===");
+    console.log("Student ID:", studentId);
+    console.log("Tutor ID:", tutorId);
+    console.log("Socket ID:", socket.id);
+    console.log("===============================");
+
+    // Update connection info
+    function updateConnectionInfo(field, value, color = 'white') {
+      const element = document.getElementById(field);
+      if (element) {
+        element.textContent = value;
+        element.style.color = color;
+      }
+    }
+
+    function updateVolumeDisplay() {
+      document.getElementById("volumeLevel").textContent = Math.round(currentVolume * 100) + '%';
+    }
+
+    // Enhanced ICE servers configuration
+    const pcConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' }
+      ],
+      iceCandidatePoolSize: 10
+    };
+
+    // Create peer connection
+    function createPeerConnection() {
+      console.log("Creating enhanced peer connection...");
+      
+      const pc = new RTCPeerConnection(pcConfig);
+
+      // Handle incoming tracks with better logging
+      pc.ontrack = (event) => {
+        console.log("🎬 Received remote track:", event.track.kind, event.track.readyState);
+        
+        if (event.streams && event.streams[0]) {
+          const stream = event.streams[0];
+          video.srcObject = stream;
+          
+          // Log stream details
+          console.log(`📹 Stream received - Video tracks: ${stream.getVideoTracks().length}, Audio tracks: ${stream.getAudioTracks().length}`);
+          
+          // Monitor track events
+          event.track.onunmute = () => {
+            console.log(`✅ ${event.track.kind} track unmuted - should be visible now`);
+            if (event.track.kind === 'video') {
+              document.getElementById("videoStatus").textContent = "Playing";
+              document.getElementById("videoStatus").className = "text-green-500";
+            } else {
+              document.getElementById("audioStatus").textContent = "Playing";
+              document.getElementById("audioStatus").className = "text-green-500";
+            }
+          };
+          
+          // Force play the video
+          video.play().then(() => {
+            console.log("✅ Video playback started");
+          }).catch(e => {
+            console.log("❌ Auto-play prevented, user interaction required:", e);
+            // Add click handler to start video
+            document.addEventListener('click', function startVideo() {
+              video.play();
+              document.removeEventListener('click', startVideo);
+            }, { once: true });
+          });
+        }
+      };
+
+      // Enhanced ICE handling
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        console.log("🧊 ICE connection state:", state);
+        updateConnectionInfo('iceState', state);
+        
+        switch(state) {
+          case 'connected':
+            updateConnectionInfo('connectionStatus', 'Connected', '#10B981');
+            updateConnectionInfo('streamStatus', 'Watching Live', '#10B981');
+            console.log("✅ ICE Connected successfully!");
+            break;
+          case 'checking':
+            updateConnectionInfo('connectionStatus', 'Connecting...', '#F59E0B');
+            console.log("🔄 ICE Checking connection...");
+            break;
+          case 'failed':
+            updateConnectionInfo('connectionStatus', 'Connection Failed', '#EF4444');
+            console.log("❌ ICE Connection failed");
+            break;
+        }
+      };
+
+      pc.onsignalingstatechange = () => {
+        updateConnectionInfo('signalingState', pc.signalingState);
+      };
+
+      // Handle ICE candidates
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log("📤 Sending ICE candidate to tutor");
+          socket.emit("ice-candidate", {
+            candidate: event.candidate,
+            tutorId: tutorId,
+            role: "student",
+            studentId: studentId,
+            socketId: socket.id
+          });
+        } else {
+          console.log("✅ All ICE candidates gathered");
+        }
+      };
+
+      return pc;
+    }
+
+    // Initialize connection
+    async function initializeConnection() {
+      try {
+        console.log("Initializing connection to tutor:", tutorId);
+        
+        // Create peer connection
+        peerConnection = createPeerConnection();
+        
+        // Join the tutor's room with proper IDs
+        socket.emit("student-join", { 
+          tutorId: tutorId, 
+          studentId: studentId,
+          socketId: socket.id
+        });
+        
+        updateConnectionInfo('connectionStatus', 'Joining session...', '#F59E0B');
+
+        // Test the connection with verification
+        socket.emit("student-verify", {
+          studentId: studentId,
+          tutorId: tutorId,
+          timestamp: Date.now()
+        });
+
+      } catch (error) {
+        console.error("Error initializing connection:", error);
+        updateConnectionInfo('connectionStatus', 'Connection failed', '#EF4444');
+      }
+    }
+
+    // Socket event handlers
+    socket.on("connect", () => {
+      console.log("Connected to server");
+    });
+
+    socket.on("verification-response", (data) => {
+      console.log("✅ Server verified our connection:", data);
+    });
+
+    socket.on("tutor-offer", async ({ offer }) => {
+      console.log("Received offer from tutor");
+      
+      try {
+        if (!peerConnection) {
+          peerConnection = createPeerConnection();
+        }
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        console.log("Set remote description successfully");
+
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        console.log("Sending answer to tutor");
+        socket.emit("student-answer", {
+          answer: peerConnection.localDescription,
+          tutorId: tutorId,
+          studentId: studentId,
+          socketId: socket.id
+        });
+
+      } catch (error) {
+        console.error("Error handling tutor offer:", error);
+      }
+    });
+
+    socket.on("ice-candidate", async ({ candidate, role }) => {
+      if (role === "tutor" && candidate && peerConnection) {
+        console.log("Received ICE candidate from tutor");
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("✅ Added ICE candidate from tutor");
+        } catch (error) {
+          console.error("Error adding ICE candidate:", error);
+        }
+      }
+    });
+
+    socket.on("viewerCountUpdate", (count) => {
+      document.querySelector('#viewerCount span').textContent = count;
+    });
+
+    socket.on("tutorStoppedLive", () => {
+      alert("The tutor has ended the live session.");
+      window.close();
+    });
+
+    // Audio controls for student
+    document.getElementById("studentMuteBtn").addEventListener("click", () => {
+      if (video.muted) {
+        video.muted = false;
+        document.getElementById("studentMuteBtn").textContent = "🔇 Mute";
+        document.getElementById("audioStatus").textContent = "Playing";
+        document.getElementById("audioStatus").className = "text-green-500";
+      } else {
+        video.muted = true;
+        document.getElementById("studentMuteBtn").textContent = "🔊 Unmute";
+        document.getElementById("audioStatus").textContent = "Muted";
+        document.getElementById("audioStatus").className = "text-red-500";
+      }
+    });
+
+    document.getElementById("volumeUpBtn").addEventListener("click", () => {
+      currentVolume = Math.min(1.0, currentVolume + 0.1);
+      video.volume = currentVolume;
+      updateVolumeDisplay();
+    });
+
+    document.getElementById("volumeDownBtn").addEventListener("click", () => {
+      currentVolume = Math.max(0, currentVolume - 0.1);
+      video.volume = currentVolume;
+      updateVolumeDisplay();
+    });
+
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log("Page is hidden");
+      } else {
+        console.log("Page is visible");
+      }
+    });
+
+    // Initialize when page loads
+    window.addEventListener('load', initializeConnection);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (peerConnection) {
+        peerConnection.close();
+      }
+    });
+  </script>
+</body>
+</html>
