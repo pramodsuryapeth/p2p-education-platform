@@ -483,8 +483,8 @@ io.on("connection", (socket) => {
   });
 });
 app.use(express.static("public"));
-
+const PORT = process.env.PORT || 3000;
 // ✅ Start Server
-http.listen(3000, () => {
+http.listen(PORT, () => {
   console.log("🚀 Server running at http://localhost:3000");
 });
