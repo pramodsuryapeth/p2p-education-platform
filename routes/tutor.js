@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Newtutor = require('../models/Newtutor');
-const Course = require('../models/video'); // your Course schema
+const Course = require('../models/Video'); // your Course schema
 const Rating = require('../models/Rating'); 
 const User = require('../models/User'); // <-- IMPORTANT
 const multer = require('multer');
