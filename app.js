@@ -16,7 +16,7 @@ require('dotenv').config();
 const Message = require('./models/Message');
 const User = require('./models/User');
 const Newtutor = require('./models/Newtutor'); // ✅ Correct import
-const Course = require('./models/video');
+const Course = require('./models/Video'); // ✅ Correct casing
 const Rating = require('./models/Rating');
 
 // ✅ MongoDB connection
