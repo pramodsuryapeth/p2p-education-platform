@@ -6,28 +6,25 @@ const Course = require('../models/video');
 const Rating = require('../models/Rating');
 const { isLogged, isTutor, isStudent } = require('../middleware/authMiddleware');
 
-// ✅ Multer config
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    if (file.fieldname === 'thumbnail') {
-      cb(null, 'public/thumbnails/');
-    } else if (file.fieldname === 'videos') {
-      cb(null, 'public/videos/');
-    }
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+// ✅ POST: Upload handler
+const FirebaseStorage = require('../utils/firebaseStorage'); // Import Firebase Storage
+
+// ===== Multer Memory Storage Config =====
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit for videos
   }
 });
-
-const upload = multer({ storage });
 
 // ✅ GET: Upload Form
 router.get('/upload-course', isLogged, isTutor, (req, res) => {
   res.render('uploadvideo', { messages: req.flash() });
 });
 
-// ✅ POST: Upload handler
+
+// ✅ POST: Upload course with Firebase Storage
 router.post(
   '/upload-course',
   isLogged,
@@ -44,29 +41,41 @@ router.post(
       const thumbnailFile = req.files['thumbnail']?.[0];
       const videoFiles = req.files['videos'] || [];
 
-      // ✅ Handle both array and single string cases
+      // Handle video titles
       let videoTitles = req.body.videoTitles;
       if (!Array.isArray(videoTitles)) {
-        videoTitles = [videoTitles]; // convert single input into array
+        videoTitles = [videoTitles];
       }
       videoTitles = videoTitles.map(t => t.trim());
 
-      const videos = videoFiles.map((file, index) => ({
-        title: videoTitles[index] || `Untitled Video ${index + 1}`,
-        videoPath: 'videos/' + file.filename
-      }));
+      // Upload thumbnail to Firebase
+      let thumbnailUrl = '';
+      if (thumbnailFile) {
+        thumbnailUrl = await FirebaseStorage.uploadFile(thumbnailFile, 'course-thumbnails');
+      }
+
+      // Upload videos to Firebase
+      const videos = [];
+      for (let i = 0; i < videoFiles.length; i++) {
+        const videoUrl = await FirebaseStorage.uploadFile(videoFiles[i], 'course-videos');
+        videos.push({
+          title: videoTitles[i] || `Untitled Video ${i + 1}`,
+          videoPath: videoUrl, // Store Firebase URL
+          duration: '0:00' // You might want to calculate this
+        });
+      }
 
       const newCourse = new Course({
         tutorId,
         courseTitle,
         shortDescription,
         detailedDescription,
-        thumbnail: 'thumbnails/' + thumbnailFile.filename,
+        thumbnail: thumbnailUrl, // Store Firebase URL
         videos
       });
 
       await newCourse.save();
-      req.flash('success', 'Course uploaded successfully!');
+      req.flash('success', 'Course uploaded successfully to Firebase!');
       res.redirect('/upload-course');
     } catch (error) {
       console.error('Upload failed:', error);
@@ -75,6 +84,36 @@ router.post(
     }
   }
 );
+
+// Add route to delete course (with Firebase cleanup)
+router.delete('/course/:id', isLogged, isTutor, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Course not found' });
+    }
+
+    // Delete thumbnail from Firebase
+    if (course.thumbnail) {
+      await FirebaseStorage.deleteFile(course.thumbnail);
+    }
+
+    // Delete videos from Firebase
+    for (const video of course.videos) {
+      if (video.videoPath) {
+        await FirebaseStorage.deleteFile(video.videoPath);
+      }
+    }
+
+    await Course.findByIdAndDelete(req.params.id);
+    
+    res.json({ success: true, message: 'Course deleted successfully' });
+  } catch (error) {
+    console.error('Delete failed:', error);
+    res.status(500).json({ success: false, message: 'Delete failed' });
+  }
+});
 
 // View uploaded courses by tutor
 router.get('/my-course', isLogged, isTutor, async (req, res) => {

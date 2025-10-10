@@ -10,6 +10,7 @@ const fs = require('fs');
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const { isLogged, isTutor, isStudent } = require('./middleware/authMiddleware');
+require('dotenv').config(); 
 
 // ⬇️ Load Models
 const Message = require('./models/Message');
@@ -19,13 +20,13 @@ const Course = require('./models/video');
 const Rating = require('./models/Rating');
 
 // ✅ MongoDB connection
-mongoose.connect('mongodb://localhost:27017/expressauth', {
+
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.error("❌ MongoDB Error:", err));
-
+.then(() => console.log("✅ MongoDB Connected"))
+.catch(err => console.error("❌ MongoDB Error:", err));
 // ✅ Middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
