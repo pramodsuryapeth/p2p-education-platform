@@ -10,16 +10,14 @@ const jwt = require('jsonwebtoken');
 const Notice = require('../models/Notice');
 const path = require('path');
 const { isLogged, isTutor, isStudent } = require('../middleware/authMiddleware');
-const FirebaseStorage = require('../utils/firebaseStorage'); // Import Firebase Storage
 
 // ===== Multer File Upload Config =====
-const storage = multer.memoryStorage();
-const upload = multer({ 
-  storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
-  }
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'public/uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
+const upload = multer({ storage });
+
 // ================== Tutor Routes ==================
 
 // Tutor Dashboard
@@ -31,86 +29,41 @@ router.get('/tutordashboard', isLogged, isTutor, (req, res) => {
 router.get('/profile', (req, res) => res.render('profile'));
 
 // Create Tutor
-
-
-// ===== Multer Memory Storage Config =====
-// Store files in memory temporarily for Firebase upload
-
-// ================== Tutor Routes ==================
-
-// Create Tutor with Firebase Storage
 router.post('/createtutor', upload.single('image'), async (req, res) => {
-  try {
-    const { username, password, phone, branch, name, skills } = req.body;
+  const { username, password, phone, branch, name, skills } = req.body;
 
-    const existing = await Newtutor.findOne({ username });
-    if (existing) {
-      req.flash('error', 'Tutor already exists');
-      return res.redirect('/profile');
-    }
-
-    // Upload image to Firebase Storage
-    let imageUrl = '';
-    if (req.file) {
-      imageUrl = await FirebaseStorage.uploadFile(req.file, 'tutor-profiles');
-    }
-
-    const hash = await bcrypt.hash(password, 10);
-    const user = await Newtutor.create({
-      username,
-      password: hash,
-      phone,
-      branch,
-      name,
-      skills,
-      userclass: 'tutor',
-      image: imageUrl // Store Firebase URL instead of local path
-    });
-
-    const token = jwt.sign(
-      { username: user.username, id: user._id, role: 'tutor' },
-      'yourSecretKey',
-      { expiresIn: '1d' }
-    );
-
-    res.cookie('token', {
-      value: token,
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000
-    });
-
-    req.flash('success', 'Tutor created successfully');
-    res.redirect('/profile');
-  } catch (error) {
-    console.error('Error creating tutor:', error);
-    req.flash('error', 'Error creating tutor');
-    res.redirect('/profile');
+  const existing = await Newtutor.findOne({ username });
+  if (existing) {
+    req.flash('error', 'Tutor already exists');
+    return res.redirect('/profile');
   }
-});
 
-// Update Tutor Profile with Firebase
-router.post('/update', upload.single('file'), isLogged, isTutor, async (req, res) => {
-  try {
-    const { name, phone, skill } = req.body;
-    const update = { name, phone, skills: skill };
-    
-    if (req.file) {
-      // Upload new image to Firebase
-      const imageUrl = await FirebaseStorage.uploadFile(req.file, 'tutor-profiles');
-      update.image = imageUrl;
-      
-      // Optional: Delete old image from Firebase
-      // You might want to implement this based on your requirements
-    }
+  const hash = await bcrypt.hash(password, 10);
+  const user = await Newtutor.create({
+    username,
+    password: hash,
+    phone,
+    branch,
+    name,
+    skills,
+    userclass: 'tutor',
+    image: 'uploads/' + req.file.filename
+  });
 
-    await Newtutor.findByIdAndUpdate(req.user.id, update);
-    req.flash('success', 'Profile updated');
-    res.redirect('/dashboard');
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    req.flash('error', 'Error updating profile');
-    res.redirect('/dashboard');
-  }
+  const token = jwt.sign(
+    { username: user.username, id: user._id, role: 'tutor' },
+    'yourSecretKey',
+    { expiresIn: '1d' }
+  );
+
+  res.cookie('token', {
+    value: token,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  });
+
+  req.flash('success', 'Tutor created successfully');
+  res.redirect('/profile');
 });
 
 // Tutor Dashboard (with tutor data)
