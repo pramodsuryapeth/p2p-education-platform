@@ -17,37 +17,67 @@
       50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
+    /* Add mirror video CSS */
+    .mirror-video {
+      transform: scaleX(-1);
+      -webkit-transform: scaleX(-1);
+      -moz-transform: scaleX(-1);
+      -ms-transform: scaleX(-1);
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
-  <div class="container mx-auto p-6">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">🎥 Live Studio - <%= tutor.name %></h1>
+  <!-- Header with Back Button -->
+  <header class="bg-gray-800 shadow-lg">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <!-- Left side: Back Button -->
+      <a href="/dashboard" 
+         id="backButton"
+         class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+        </svg>
+        <span class="font-medium">Back to Dashboard</span>
+      </a>
+      
+      <!-- Right side: Live Status -->
       <div class="flex items-center space-x-4">
         <div id="connectionStatus" class="flex items-center space-x-2">
           <span class="w-3 h-3 bg-red-500 rounded-full"></span>
           <span>Connecting...</span>
         </div>
-        <div id="viewerCount" class="bg-gray-800 px-3 py-1 rounded">
+        <div id="viewerCount" class="bg-gray-700 px-3 py-1 rounded">
           Viewers: <span>0</span>
         </div>
       </div>
+    </div>
+  </header>
+
+  <div class="container mx-auto p-6">
+    <!-- Page Title -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold">🎥 Live Studio - <%= tutor.name %></h1>
+      <p class="text-gray-400 mt-2">Manage your live stream and interact with students</p>
     </div>
 
     <!-- Video Area -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Main Video -->
-      <div class="lg:col-span-2 bg-black rounded-lg overflow-hidden">
+      <div class="lg:col-span-2 bg-black rounded-lg overflow-hidden relative">
+        <!-- Video with mirror class -->
         <video 
           id="tutorVideo" 
           autoplay 
           muted 
           playsinline 
-          class="w-full h-64 lg:h-96 object-cover"
+          class="w-full h-64 lg:h-96 object-cover mirror-video"
         ></video>
+        <!-- Mirror indicator -->
+        <div class="absolute bottom-4 left-4 text-xs text-white bg-black bg-opacity-70 px-3 py-1 rounded-full">
+          <i class="fas fa-sync-alt mr-1"></i> Mirrored View
+        </div>
         <div class="p-4">
-          <p class="text-sm text-gray-400">Your camera preview</p>
+          <p class="text-sm text-gray-400">Your camera preview (mirrored for natural viewing)</p>
         </div>
       </div>
 
@@ -132,6 +162,7 @@
     const tutorId = "<%= tutor._id %>";
     const video = document.getElementById("tutorVideo");
     const debugInfo = document.getElementById("debugInfo");
+    const backButton = document.getElementById("backButton");
     
     let localStream = null;
     let screenStream = null;
@@ -141,6 +172,7 @@
     let currentCamera = 'user';
     let audioContext = null;
     let analyser = null;
+    let isLive = false;
 
     // Debug logging
     function debugLog(message) {
@@ -190,6 +222,46 @@
       document.getElementById('streamDuration').textContent = '00:00:00';
     }
 
+    // Stop Live Stream Function
+    async function stopLiveStream() {
+      if (!isLive) return;
+      
+      debugLog("Stopping live stream via back button...");
+      
+      // Stop all tracks
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+      }
+      
+      // Close all peer connections
+      Object.values(peerConnections).forEach(pc => pc.close());
+      peerConnections = {};
+      
+      // Clear video
+      video.srcObject = null;
+      
+      // Notify server
+      socket.emit("tutor-stop", { tutorId });
+      
+      // Update UI
+      document.getElementById("startLiveBtn").classList.remove('hidden');
+      document.getElementById("stopLiveBtn").classList.add('hidden');
+      document.getElementById("streamStatus").textContent = "Offline";
+      document.getElementById("streamStatus").className = "text-red-500";
+      
+      updateConnectionStatus('Offline', '#EF4444');
+      stopStreamTimer();
+      updateViewerCount(0);
+      isLive = false;
+      
+      debugLog("Live stream stopped");
+      
+      return true;
+    }
+
     // Enhanced ICE servers configuration
     const pcConfig = {
       iceServers: [
@@ -220,10 +292,11 @@
       
       const pc = new RTCPeerConnection(pcConfig);
 
-      // Add local tracks to peer connection
+      // Add local tracks to peer connection (NOT mirrored for students)
       if (localStream) {
         localStream.getTracks().forEach(track => {
           debugLog(`Adding ${track.kind} track to peer connection`);
+          // IMPORTANT: Send non-mirrored stream to students
           pc.addTrack(track, localStream);
         });
       }
@@ -316,8 +389,9 @@
           audio: true 
         });
 
-        // Display local video
+        // Display local video with mirror effect (self-view)
         video.srcObject = localStream;
+        video.classList.add('mirror-video'); // Ensure mirror class is applied
         
         // Start audio monitoring
         startAudioMonitoring();
@@ -333,8 +407,11 @@
         
         updateConnectionStatus('Live', '#10B981');
         startStreamTimer();
+        isLive = true;
         
         debugLog("Live stream started successfully");
+        debugLog("Note: Your self-view is mirrored (like looking in a mirror)");
+        debugLog("Students will see a non-mirrored view of you");
 
       } catch (error) {
         debugLog(`Failed to start live stream: ${error.message}`);
@@ -343,39 +420,32 @@
       }
     });
 
-    // Stop Live Stream
+    // Stop Live Stream Button
     document.getElementById("stopLiveBtn").addEventListener("click", async () => {
-      debugLog("Stopping live stream...");
+      await stopLiveStream();
+    });
+
+    // Back Button Handler
+    backButton.addEventListener("click", async (e) => {
+      e.preventDefault();
       
-      // Stop all tracks
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+      if (isLive) {
+        const confirmed = confirm("You are currently live! Stopping the stream will disconnect all students. Are you sure you want to go back?");
+        if (!confirmed) {
+          return;
+        }
+        
+        // Stop the live stream
+        await stopLiveStream();
+        
+        // Short delay to ensure stream is properly stopped
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 500);
+      } else {
+        // If not live, just navigate back
+        window.location.href = "/dashboard";
       }
-      if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-      }
-      
-      // Close all peer connections
-      Object.values(peerConnections).forEach(pc => pc.close());
-      peerConnections = {};
-      
-      // Clear video
-      video.srcObject = null;
-      
-      // Notify server
-      socket.emit("tutor-stop", { tutorId });
-      
-      // Update UI
-      document.getElementById("startLiveBtn").classList.remove('hidden');
-      document.getElementById("stopLiveBtn").classList.add('hidden');
-      document.getElementById("streamStatus").textContent = "Offline";
-      document.getElementById("streamStatus").className = "text-red-500";
-      
-      updateConnectionStatus('Offline', '#EF4444');
-      stopStreamTimer();
-      updateViewerCount(0);
-      
-      debugLog("Live stream stopped");
     });
 
     // Share Screen
@@ -447,6 +517,7 @@
         });
 
         video.srcObject = localStream;
+        video.classList.add('mirror-video'); // Re-apply mirror effect
 
         // Update all peer connections with new tracks
         Object.values(peerConnections).forEach(pc => {
@@ -588,15 +659,16 @@
 
     // Initialize
     debugLog("Tutor live studio initialized");
+    debugLog("Note: Your self-view will be mirrored (like a mirror) for natural viewing");
+    debugLog("Students will see you normally (non-mirrored)");
     updateConnectionStatus('Ready', '#3B82F6');
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+      if (isLive) {
+        // If live, stop the stream before leaving
+        stopLiveStream();
       }
-      Object.values(peerConnections).forEach(pc => pc.close());
-      socket.emit("tutor-stop", { tutorId });
     });
   </script>
 </body>

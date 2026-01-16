@@ -11,12 +11,13 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const { isLogged, isTutor, isStudent } = require('./middleware/authMiddleware');
 require('dotenv').config(); 
+const methodOverride = require('method-override');
 
 // ⬇️ Load Models
 const Message = require('./models/Message');
 const User = require('./models/User');
 const Newtutor = require('./models/Newtutor'); // ✅ Correct import
-const Course = require('./models/Video'); // ✅ Correct casing
+const Course = require('./models/Video');
 const Rating = require('./models/Rating');
 
 // ✅ MongoDB connection
@@ -33,7 +34,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
-
+app.use(methodOverride('_method'));
 // ✅ Static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -76,6 +77,7 @@ const videoRoutes = require('./routes/video');
 const chatRoutes = require('./routes/chat');
 const noticeRoutes = require('./routes/notice');
 const adminRoutes = require('./routes/admin');
+const liveStreamingRoutes = require('./routes/livestreiming');
 
 
 app.use('/', authRoutes);
@@ -84,6 +86,7 @@ app.use('/', videoRoutes);
 app.use('/', chatRoutes);
 app.use('/', adminRoutes);
 app.use('/', noticeRoutes);
+app.use('/', liveStreamingRoutes);
 
 
 // ❌ 404 fallback

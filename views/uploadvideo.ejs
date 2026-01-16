@@ -7,122 +7,30 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
-    body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      min-height: 100vh;
+    /* Add fade animation for flash messages */
+    .flash-message {
+      animation: fadeIn 0.5s ease-in;
     }
     
-    .form-container {
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      backdrop-filter: blur(10px);
-      transition: all 0.3s ease;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
-    .form-container:hover {
-      box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.15);
+    .fade-out {
+      animation: fadeOut 0.5s ease-out forwards;
     }
     
-    .input-field {
-      transition: all 0.3s ease;
-      border: 1px solid #e2e8f0;
-    }
-    
-    .input-field:focus {
-      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
-    }
-    
-    .video-section {
-      transition: all 0.3s ease;
-      background: linear-gradient(to right, #f8fafc, #f1f5f9);
-    }
-    
-    .video-section:hover {
-      background: linear-gradient(to right, #f1f5f9, #e2e8f0);
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
-    }
-    
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(79, 70, 229, 0.3);
-    }
-    
-    .btn-secondary {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
-    }
-    
-    .btn-secondary:hover {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
-    }
-    
-    .dashboard-btn {
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-    }
-    
-    .dashboard-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
-    }
-    
-    .file-upload {
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .file-upload input[type="file"] {
-      position: absolute;
-      left: 0;
-      top: 0;
-      opacity: 0;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-    }
-    
-    .file-upload-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      border: 2px dashed #cbd5e0;
-      border-radius: 0.5rem;
-      background-color: #f8fafc;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      text-align: center;
-    }
-    
-    .file-upload-label:hover {
-      border-color: #93c5fd;
-      background-color: #f0f9ff;
-    }
-    
-    .file-icon {
-      font-size: 2rem;
-      color: #93c5fd;
-      margin-bottom: 0.5rem;
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-10px); }
     }
   </style>
 </head>
-<body class="bg-gray-100 font-sans py-8">
+<body class="bg-gray-100 min-h-screen">
 
-  <div class="max-w-3xl mx-auto p-8 form-container bg-white rounded-xl relative">
-    <a href="/dashboard" class="absolute top-6 right-6 dashboard-btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2.5 rounded-lg shadow-md flex items-center space-x-2">
+  <div class="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-lg relative mt-8">
+    <a href="/dashboard" class="absolute top-6 right-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2.5 rounded-lg shadow-md flex items-center space-x-2">
       <i class="fas fa-home"></i>
       <span>Dashboard</span>
     </a>
@@ -132,24 +40,66 @@
       <p class="text-gray-600">Share your knowledge with the world</p>
     </div>
 
-    <% if (messages.error) { %>
-      <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200">
-        <p class="text-red-700 flex items-center">
-          <i class="fas fa-exclamation-circle mr-2"></i>
-          <%= messages.error %>
-        </p>
-      </div>
-    <% } %>
-    <% if (messages.success) { %>
-      <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200">
-        <p class="text-green-700 flex items-center">
-          <i class="fas fa-check-circle mr-2"></i>
-          <%= messages.success %>
-        </p>
-      </div>
-    <% } %>
+    <!-- Flash Messages - Fixed with better styling and auto-remove -->
+    <div id="flashMessages">
+      <% if (messages.error) { %>
+        <div class="flash-message mb-6 p-4 rounded-lg bg-red-50 border border-red-200">
+          <div class="flex items-center justify-between">
+            <p class="text-red-700 flex items-center">
+              <i class="fas fa-exclamation-circle mr-2"></i>
+              <%= messages.error %>
+            </p>
+            <button type="button" onclick="removeFlashMessage(this)" class="text-red-500 hover:text-red-700">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      <% } %>
+      
+      <% if (messages.success) { %>
+        <div class="flash-message mb-6 p-4 rounded-lg bg-green-50 border border-green-200">
+          <div class="flex items-center justify-between">
+            <p class="text-green-700 flex items-center">
+              <i class="fas fa-check-circle mr-2"></i>
+              <%= messages.success %>
+            </p>
+            <button type="button" onclick="removeFlashMessage(this)" class="text-green-500 hover:text-green-700">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      <% } %>
+      
+      <% if (messages.warning) { %>
+        <div class="flash-message mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+          <div class="flex items-center justify-between">
+            <p class="text-yellow-700 flex items-center">
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              <%= messages.warning %>
+            </p>
+            <button type="button" onclick="removeFlashMessage(this)" class="text-yellow-500 hover:text-yellow-700">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      <% } %>
+      
+      <% if (messages.info) { %>
+        <div class="flash-message mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+          <div class="flex items-center justify-between">
+            <p class="text-blue-700 flex items-center">
+              <i class="fas fa-info-circle mr-2"></i>
+              <%= messages.info %>
+            </p>
+            <button type="button" onclick="removeFlashMessage(this)" class="text-blue-500 hover:text-blue-700">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      <% } %>
+    </div>
 
-    <form action="/upload-course" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="/upload-course" method="POST" class="space-y-6" id="courseUploadForm">
       <div class="bg-blue-50 p-5 rounded-xl">
         <h2 class="text-xl font-semibold text-blue-800 mb-4 flex items-center">
           <i class="fas fa-info-circle mr-2"></i>
@@ -159,17 +109,20 @@
         <div class="space-y-5">
           <div>
             <label class="block font-medium mb-2 text-gray-700">Course Title:</label>
-            <input type="text" name="courseTitle" required class="w-full input-field rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" name="courseTitle" id="courseTitle" required 
+                   class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
 
           <div>
             <label class="block font-medium mb-2 text-gray-700">Short Description:</label>
-            <input type="text" name="shortDescription" required class="w-full input-field rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" name="shortDescription" id="shortDescription" required 
+                   class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
 
           <div>
             <label class="block font-medium mb-2 text-gray-700">Detailed Description:</label>
-            <textarea name="detailedDescription" rows="4" required class="w-full input-field rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <textarea name="detailedDescription" id="detailedDescription" rows="4" required 
+                      class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
           </div>
         </div>
       </div>
@@ -180,16 +133,54 @@
           Course Thumbnail
         </h2>
         
-        <div class="file-upload">
-          <label class="file-upload-label">
-            <div class="file-icon">
+        <div class="relative overflow-hidden">
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-purple-400 transition-colors" 
+               onclick="document.getElementById('thumbnailInput').click()">
+            <div class="text-purple-500 text-3xl mb-3">
               <i class="fas fa-cloud-upload-alt"></i>
             </div>
-            <span class="font-medium text-gray-700">Click to upload thumbnail</span>
-            <span class="text-sm text-gray-500 mt-1">PNG, JPG up to 10MB</span>
-          </label>
-          <input type="file" name="thumbnail" accept="image/*" required class="w-full">
+            <p class="font-medium text-gray-700">Click to upload thumbnail</p>
+            <p class="text-sm text-gray-500 mt-1">PNG, JPG up to 10MB</p>
+          </div>
+          <input type="file" id="thumbnailInput" accept="image/*" class="hidden" 
+                 onchange="uploadThumbnailToCloudinary(this.files[0])">
         </div>
+
+        <!-- Thumbnail Preview -->
+        <div id="thumbnailPreview" class="mt-4 hidden">
+          <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
+            <div class="flex items-center space-x-3">
+              <img id="thumbnailImage" class="w-16 h-12 object-cover rounded" alt="Thumbnail preview">
+              <div>
+                <p id="thumbnailName" class="font-medium text-gray-700"></p>
+                <p id="thumbnailSize" class="text-sm text-gray-500"></p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <!-- Progress Bar -->
+              <div id="thumbnailProgress" class="w-32 bg-gray-200 rounded-full h-2 hidden">
+                <div id="thumbnailProgressBar" class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+              
+              <!-- Upload Status -->
+              <span id="thumbnailStatus" class="text-xs px-2 py-1 rounded-full hidden">
+                <i class="fas fa-spinner fa-spin mr-1"></i>
+              </span>
+              
+              <!-- Success Check -->
+              <span id="thumbnailSuccess" class="text-green-500 hidden">
+                <i class="fas fa-check-circle"></i>
+              </span>
+              
+              <button type="button" onclick="removeThumbnail()" class="text-red-500 hover:text-red-700">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Hidden input to store Cloudinary URL -->
+        <input type="hidden" id="thumbnailCloudinaryUrl" name="thumbnailCloudinaryUrl">
       </div>
 
       <div class="bg-amber-50 p-5 rounded-xl">
@@ -199,72 +190,436 @@
         </h2>
         
         <div id="video-container" class="space-y-4">
-          <div class="video-section p-5 rounded-lg">
-            <div class="mb-4">
-              <label class="block font-medium mb-2 text-gray-700">Video Title:</label>
-              <input type="text" name="videoTitles" placeholder="Enter a descriptive title for this video" required class="w-full input-field rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <div class="file-upload">
-              <label class="file-upload-label">
-                <div class="file-icon">
-                  <i class="fas fa-film"></i>
-                </div>
-                <span class="font-medium text-gray-700">Click to upload video</span>
-                <span class="text-sm text-gray-500 mt-1">MP4, MOV up to 500MB</span>
-              </label>
-              <input type="file" name="videos" accept="video/*" required class="w-full">
-            </div>
-          </div>
+          <!-- Video fields will be added here dynamically -->
         </div>
 
-        <button type="button" onclick="addVideoField()" class="btn-secondary text-white px-5 py-2.5 rounded-lg mt-4 flex items-center space-x-2">
+        <button type="button" onclick="addVideoField()" 
+                class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2.5 rounded-lg mt-4 flex items-center space-x-2">
           <i class="fas fa-plus"></i>
           <span>Add Another Video</span>
         </button>
       </div>
 
-      <button type="submit" class="btn-primary w-full text-white font-semibold py-3.5 rounded-lg shadow-md mt-2 flex items-center justify-center space-x-2">
+      <button type="submit" id="submitBtn" 
+              class="bg-gradient-to-r from-indigo-500 to-purple-600 w-full text-white font-semibold py-3.5 rounded-lg shadow-md flex items-center justify-center space-x-2">
         <i class="fas fa-upload"></i>
         <span>Upload Course</span>
       </button>
     </form>
   </div>
 
+  <!-- Video Field Template (Hidden) -->
+  <template id="videoTemplate">
+    <div class="video-field bg-white p-5 rounded-lg border border-amber-200">
+      <div class="mb-4">
+        <label class="block font-medium mb-2 text-gray-700">Video Title:</label>
+        <input type="text" class="video-title-input" placeholder="Enter a descriptive title for this video" required 
+               class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+
+      <div class="relative overflow-hidden">
+        <div class="video-upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-amber-400 transition-colors">
+          <div class="text-amber-500 text-3xl mb-3">
+            <i class="fas fa-film"></i>
+          </div>
+          <p class="font-medium text-gray-700">Click to upload video</p>
+          <p class="text-sm text-gray-500 mt-1">MP4, MOV up to 500MB</p>
+        </div>
+        <input type="file" class="video-input hidden" accept="video/*" 
+               onchange="uploadVideoToCloudinary(this.files[0], this.closest('.video-field'))">
+      </div>
+
+      <!-- Video Preview -->
+      <div class="video-preview mt-3 hidden">
+        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+          <div class="flex items-center space-x-3">
+            <div class="text-blue-500">
+              <i class="fas fa-video"></i>
+            </div>
+            <div>
+              <p class="video-name font-medium text-gray-700"></p>
+              <p class="video-size text-sm text-gray-500"></p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <!-- Progress Bar -->
+            <div class="video-progress w-32 bg-gray-200 rounded-full h-2 hidden">
+              <div class="video-progress-bar bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            
+            <!-- Upload Status -->
+            <span class="video-status text-xs px-2 py-1 rounded-full hidden">
+              <i class="fas fa-spinner fa-spin mr-1"></i>
+            </span>
+            
+            <!-- Success Check -->
+            <span class="video-success text-green-500 hidden">
+              <i class="fas fa-check-circle"></i>
+            </span>
+            
+            <button type="button" class="remove-video-btn text-red-500 hover:text-red-700">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden inputs for form submission -->
+      <input type="hidden" class="video-title-hidden" name="videoTitles[]">
+      <input type="hidden" class="video-url-hidden" name="videoCloudinaryUrls[]">
+
+      <button type="button" class="remove-video-field mt-3 text-red-600 text-sm font-medium flex items-center space-x-1">
+        <i class="fas fa-trash-alt"></i>
+        <span>Remove Video</span>
+      </button>
+    </div>
+  </template>
+
   <script>
+    // Cloudinary Configuration
+    const CLOUDINARY_CLOUD_NAME = '<%= CLOUDINARY_CLOUD_NAME %>';
+    const CLOUDINARY_UPLOAD_PRESET = '<%= CLOUDINARY_UPLOAD_PRESET %>';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      addVideoField();
+      
+      // Auto-hide flash messages after 5 seconds
+      setTimeout(() => {
+        document.querySelectorAll('.flash-message').forEach(message => {
+          fadeOutAndRemove(message);
+        });
+      }, 5000);
+      
+      // Scroll to top to ensure messages are visible
+      window.scrollTo(0, 0);
+    });
+
+    let videoCounter = 0;
+
     function addVideoField() {
       const container = document.getElementById('video-container');
-
-      const section = document.createElement('div');
-      section.className = 'video-section p-5 rounded-lg mt-4';
-      section.innerHTML = `
-        <div class="mb-4">
-          <label class="block font-medium mb-2 text-gray-700">Video Title:</label>
-          <input type="text" name="videoTitles" placeholder="Enter a descriptive title for this video" required class="w-full input-field rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <div class="file-upload">
-          <label class="file-upload-label">
-            <div class="file-icon">
-              <i class="fas fa-film"></i>
-            </div>
-            <span class="font-medium text-gray-700">Click to upload video</span>
-            <span class="text-sm text-gray-500 mt-1">MP4, MOV up to 500MB</span>
-          </label>
-          <input type="file" name="videos" accept="video/*" required class="w-full">
-        </div>
-        
-        <button type="button" onclick="this.parentElement.remove()" class="mt-3 text-red-600 text-sm font-medium flex items-center space-x-1">
-          <i class="fas fa-trash-alt"></i>
-          <span>Remove Video</span>
-        </button>
-      `;
-
-      container.appendChild(section);
+      const template = document.getElementById('videoTemplate');
+      const clone = template.content.cloneNode(true);
       
-      // Smooth scroll to the new element
-      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const videoField = clone.querySelector('.video-field');
+      const removeBtn = clone.querySelector('.remove-video-field');
+      const removeVideoBtn = clone.querySelector('.remove-video-btn');
+      const uploadArea = clone.querySelector('.video-upload-area');
+      const videoInput = clone.querySelector('.video-input');
+      
+      // Give unique ID to this video field
+      videoCounter++;
+      videoField.dataset.videoId = videoCounter;
+      
+      // Add click handler for upload area
+      uploadArea.addEventListener('click', function() {
+        videoInput.click();
+      });
+      
+      // Remove entire field
+      removeBtn.addEventListener('click', () => {
+        videoField.remove();
+      });
+      
+      // Remove just the uploaded video
+      removeVideoBtn.addEventListener('click', () => {
+        const preview = videoField.querySelector('.video-preview');
+        const titleInput = videoField.querySelector('.video-title-input');
+        const hiddenTitle = videoField.querySelector('.video-title-hidden');
+        const hiddenUrl = videoField.querySelector('.video-url-hidden');
+        
+        preview.classList.add('hidden');
+        videoInput.value = '';
+        titleInput.value = '';
+        hiddenTitle.value = '';
+        hiddenUrl.value = '';
+      });
+      
+      // Update hidden title when title input changes
+      const titleInput = videoField.querySelector('.video-title-input');
+      const hiddenTitle = videoField.querySelector('.video-title-hidden');
+      titleInput.addEventListener('input', function() {
+        hiddenTitle.value = this.value;
+      });
+      
+      container.appendChild(videoField);
     }
+
+    async function uploadThumbnailToCloudinary(file) {
+      if (!file) return;
+      
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        showToast('error', 'Please select an image file');
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('error', 'Thumbnail must be less than 10MB');
+        return;
+      }
+      
+      // Show preview
+      const preview = document.getElementById('thumbnailPreview');
+      const image = document.getElementById('thumbnailImage');
+      const name = document.getElementById('thumbnailName');
+      const size = document.getElementById('thumbnailSize');
+      const progress = document.getElementById('thumbnailProgress');
+      const progressBar = document.getElementById('thumbnailProgressBar');
+      const status = document.getElementById('thumbnailStatus');
+      const success = document.getElementById('thumbnailSuccess');
+      
+      image.src = URL.createObjectURL(file);
+      name.textContent = file.name;
+      size.textContent = formatFileSize(file.size);
+      preview.classList.remove('hidden');
+      progress.classList.remove('hidden');
+      status.classList.remove('hidden');
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      formData.append('folder', 'course_thumbnails');
+      
+      try {
+        // Upload to Cloudinary
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.secure_url) {
+          // Update progress to 100%
+          progressBar.style.width = '100%';
+          
+          // Show success
+          setTimeout(() => {
+            progress.classList.add('hidden');
+            status.classList.add('hidden');
+            success.classList.remove('hidden');
+            
+            // Set the hidden input value
+            document.getElementById('thumbnailCloudinaryUrl').value = data.secure_url;
+            
+            showToast('success', 'Thumbnail uploaded successfully!');
+          }, 500);
+        } else {
+          throw new Error('No secure_url in response');
+        }
+      } catch (error) {
+        console.error('Thumbnail upload failed:', error);
+        progressBar.classList.remove('bg-green-500');
+        progressBar.classList.add('bg-red-500');
+        progressBar.style.width = '100%';
+        status.innerHTML = '<i class="fas fa-times mr-1"></i>Failed';
+        showToast('error', 'Thumbnail upload failed. Please try again.');
+      }
+    }
+
+    async function uploadVideoToCloudinary(file, videoField) {
+      if (!file) return;
+      
+      // Validate file
+      if (!file.type.startsWith('video/')) {
+        showToast('error', 'Please select a video file');
+        return;
+      }
+      
+      if (file.size > 500 * 1024 * 1024) {
+        showToast('error', 'Video must be less than 500MB');
+        return;
+      }
+      
+      // Show preview
+      const preview = videoField.querySelector('.video-preview');
+      const name = videoField.querySelector('.video-name');
+      const size = videoField.querySelector('.video-size');
+      const progress = videoField.querySelector('.video-progress');
+      const progressBar = videoField.querySelector('.video-progress-bar');
+      const status = videoField.querySelector('.video-status');
+      const success = videoField.querySelector('.video-success');
+      const titleInput = videoField.querySelector('.video-title-input');
+      const hiddenTitle = videoField.querySelector('.video-title-hidden');
+      const hiddenUrl = videoField.querySelector('.video-url-hidden');
+      
+      name.textContent = file.name;
+      size.textContent = formatFileSize(file.size);
+      preview.classList.remove('hidden');
+      progress.classList.remove('hidden');
+      status.classList.remove('hidden');
+      
+      // Set default title if empty
+      if (!titleInput.value) {
+        const defaultTitle = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+        titleInput.value = defaultTitle;
+        hiddenTitle.value = defaultTitle;
+      }
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      formData.append('folder', 'course_videos');
+      formData.append('resource_type', 'video');
+      
+      try {
+        // Upload to Cloudinary
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.secure_url) {
+          // Update progress to 100%
+          progressBar.style.width = '100%';
+          
+          // Show success
+          setTimeout(() => {
+            progress.classList.add('hidden');
+            status.classList.add('hidden');
+            success.classList.remove('hidden');
+            
+            // Set the hidden input values
+            hiddenUrl.value = data.secure_url;
+            
+            showToast('success', 'Video uploaded successfully!');
+          }, 500);
+        } else {
+          throw new Error('No secure_url in response');
+        }
+      } catch (error) {
+        console.error('Video upload failed:', error);
+        progressBar.classList.remove('bg-blue-500');
+        progressBar.classList.add('bg-red-500');
+        progressBar.style.width = '100%';
+        status.innerHTML = '<i class="fas fa-times mr-1"></i>Failed';
+        showToast('error', 'Video upload failed. Please try again.');
+      }
+    }
+
+    function removeThumbnail() {
+      const preview = document.getElementById('thumbnailPreview');
+      const input = document.getElementById('thumbnailInput');
+      const hiddenInput = document.getElementById('thumbnailCloudinaryUrl');
+      
+      preview.classList.add('hidden');
+      input.value = '';
+      hiddenInput.value = '';
+      
+      // Reset progress elements
+      document.getElementById('thumbnailProgress').classList.add('hidden');
+      document.getElementById('thumbnailStatus').classList.add('hidden');
+      document.getElementById('thumbnailSuccess').classList.add('hidden');
+      document.getElementById('thumbnailProgressBar').style.width = '0%';
+      document.getElementById('thumbnailProgressBar').classList.remove('bg-red-500');
+      document.getElementById('thumbnailProgressBar').classList.add('bg-green-500');
+      
+      showToast('info', 'Thumbnail removed');
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Form submission validation
+    document.getElementById('courseUploadForm').addEventListener('submit', function(e) {
+      const submitBtn = document.getElementById('submitBtn');
+      const thumbnailUrl = document.getElementById('thumbnailCloudinaryUrl').value;
+      const videoUrls = document.querySelectorAll('input[name="videoCloudinaryUrls[]"]');
+      const hasVideoUrls = Array.from(videoUrls).some(input => input.value.trim() !== '');
+      
+      // Validate thumbnail
+      if (!thumbnailUrl) {
+        e.preventDefault();
+        showToast('error', 'Please upload a thumbnail image before submitting');
+        return;
+      }
+      
+      // Validate at least one video
+      if (!hasVideoUrls) {
+        e.preventDefault();
+        showToast('error', 'Please upload at least one video before submitting');
+        return;
+      }
+      
+      // Validate course title
+      const courseTitle = document.getElementById('courseTitle').value.trim();
+      if (!courseTitle) {
+        e.preventDefault();
+        showToast('error', 'Please enter a course title');
+        return;
+      }
+      
+      // Change button to loading state
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Uploading Course...</span>';
+      submitBtn.disabled = true;
+      submitBtn.classList.remove('from-indigo-500', 'to-purple-600');
+      submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+      
+      // Allow form to submit normally - flash messages will show after redirect
+    });
+
+    // Flash message functions
+    function removeFlashMessage(button) {
+      const messageDiv = button.closest('.flash-message');
+      fadeOutAndRemove(messageDiv);
+    }
+    
+    function fadeOutAndRemove(element) {
+      if (element) {
+        element.classList.add('fade-out');
+        setTimeout(() => {
+          element.remove();
+        }, 500);
+      }
+    }
+    
+    function showToast(type, message) {
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 flash-message ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-white' :
+        'bg-blue-500 text-white'
+      }`;
+      
+      toast.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <i class="fas fa-${
+            type === 'success' ? 'check-circle' :
+            type === 'error' ? 'exclamation-circle' :
+            type === 'warning' ? 'exclamation-triangle' :
+            'info-circle'
+          }"></i>
+          <span>${message}</span>
+          <button type="button" onclick="this.parentElement.parentElement.remove()" class="ml-4">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        fadeOutAndRemove(toast);
+      }, 5000);
+    }
+    
+    // Ensure page scrolls to top when loaded (for flash messages visibility)
+    window.onload = function() {
+      window.scrollTo(0, 0);
+    };
   </script>
 </body>
 </html>

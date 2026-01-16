@@ -5,6 +5,36 @@
   <title>Student Messages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    .avatar-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #e5e7eb;
+    }
+    .avatar-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    .message-item:hover {
+      background-color: #f9fafb;
+    }
+    .unseen-message {
+      background-color: #eff6ff !important;
+      border-left: 3px solid #3b82f6;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex justify-center items-start pt-10 relative">
 
@@ -17,70 +47,365 @@
 
   <!-- Message Container -->
   <div class="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 mx-4">
-
     <div class="flex justify-between items-center px-4 py-3 border-b">
       <h1 class="text-lg font-bold text-gray-800">Messages</h1>
+      <button onclick="debugMessages()" class="text-xs text-blue-500 hover:text-blue-700">Debug</button>
     </div>
 
     <!-- Message List -->
-    <div class="divide-y">
-      <% if (messages && messages.length > 0) { %>
-        <% messages.forEach(msg => { %>
-          <a href="/messages/<%= msg.senderId %>" class="block transition 
-            <% if (msg.unseenCount > 0) { %>bg-blue-50 hover:bg-blue-100<% } else { %>hover:bg-gray-50<% } %>">
-            <div class="px-4 py-3 flex items-start space-x-3">
-              
-              <!-- Chat Icon Instead of Avatar -->
-              <div class="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-white shadow">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 3.866-3.582 7-8 7a8.013 8.013 0 01-4.9-1.692L3 19l1.5-4.5A7.96 7.96 0 013 12c0-3.866 3.582-7 8-7s8 3.134 8 7z" />
-                </svg>
-              </div>
+    <div id="message-list" class="divide-y">
+      <% 
+        // Debug: Log the messages data
+        console.log('Messages data:', messages);
+        
+        // Helper function to get proper image URL
+        const getImageUrl = (image) => {
+          console.log('Processing image:', image);
+          
+          if (!image) {
+            console.log('No image provided');
+            return null;
+          }
+          
+          // If image is an object with url property (Cloudinary format)
+          if (typeof image === 'object') {
+            console.log('Image is object:', image);
+            if (image.url) {
+              return image.url;
+            }
+            if (image.secure_url) {
+              return image.secure_url;
+            }
+            if (image.public_id) {
+              // IMPORTANT: Replace YOUR_CLOUD_NAME with your actual Cloudinary cloud name
+              return `https://res.cloudinary.com/demo/image/upload/${image.public_id}`;
+            }
+          }
+          
+          // If image is a string
+          if (typeof image === 'string') {
+            console.log('Image is string:', image);
+            
+            // Already a full URL
+            if (image.startsWith('http://') || image.startsWith('https://')) {
+              return image;
+            }
+            
+            // Cloudinary URL without protocol
+            if (image.includes('cloudinary.com') || image.includes('res.cloudinary.com')) {
+              return 'https://' + image.replace(/^\/\//, '');
+            }
+            
+            // Check if it's a Cloudinary public_id
+            if (image.includes('/') && !image.startsWith('/uploads/') && !image.startsWith('uploads/')) {
+              // Likely a Cloudinary path
+              return 'https://res.cloudinary.com/demo/image/upload/' + image;
+            }
+            
+            // Local uploads - add leading slash
+            if (image.startsWith('uploads/')) {
+              return '/' + image;
+            }
+            
+            // Just a filename
+            if (!image.includes('/')) {
+              return '/' + image;
+            }
+            
+            // Return as is with leading slash if needed
+            return image.startsWith('/') ? image : '/' + image;
+          }
+          
+          console.log('Could not parse image, returning null');
+          return null;
+        };
 
-              <!-- Message Preview -->
-              <div class="flex-1">
-                <div class="flex justify-between items-center">
-                  <p class="text-sm font-semibold text-gray-900"><%= msg.username %></p>
-                  <% if (msg.timestamp) { %>
-                    <span class="text-xs text-gray-400">
-                      <%= new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
-                    </span>
-                  <% } %>
+        // Helper function to get initials from name
+        const getInitials = (name) => {
+          if (!name) return 'U';
+          return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        };
+
+        if (messages && messages.length > 0) { 
+          messages.forEach((msg, index) => { 
+            console.log(`Processing message ${index}:`, msg);
+            
+            // Try different possible avatar fields
+            const avatarSource = msg.avatar || msg.image || msg.profileImage || msg.picture;
+            const avatarUrl = getImageUrl(avatarSource);
+            const initials = getInitials(msg.username || msg.name || 'User');
+            const hasUnseen = msg.unseenCount > 0;
+            
+            console.log(`Message ${index}:`, {
+              username: msg.username,
+              avatarSource: avatarSource,
+              avatarUrl: avatarUrl,
+              initials: initials
+            });
+      %>
+        <a href="/messages/<%= msg.senderId %>" class="block transition message-item <%= hasUnseen ? 'unseen-message' : '' %>" data-sender-id="<%= msg.senderId %>">
+          <div class="px-4 py-3 flex items-start space-x-3">
+            
+            <!-- Avatar with Cloudinary support -->
+            <div class="relative">
+              <% if (avatarUrl) { %>
+                <img 
+                  src="<%= avatarUrl %>" 
+                  alt="<%= msg.username || 'User' %>" 
+                  class="avatar-img"
+                  onerror="handleImageError(this)"
+                  loading="lazy"
+                >
+                <div class="avatar-fallback hidden">
+                  <%= initials %>
                 </div>
-                <div class="flex justify-between items-center">
-                  <p class="text-xs text-gray-600 truncate"><%= msg.text %></p>
-                  <% if (msg.unseenCount > 0) { %>
-                    <span class="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      <%= msg.unseenCount %>
-                    </span>
-                  <% } %>
+              <% } else { %>
+                <div class="avatar-fallback">
+                  <%= initials %>
                 </div>
+              <% } %>
+              
+              <% if (hasUnseen) { %>
+                <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+              <% } %>
+            </div>
+
+            <!-- Message Preview -->
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-center mb-1">
+                <p class="text-sm font-semibold text-gray-900 truncate">
+                  <%= msg.username || 'Unknown User' %>
+                </p>
+                <% if (msg.timestamp) { %>
+                  <span class="text-xs text-gray-400 whitespace-nowrap ml-2">
+                    <%= new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
+                  </span>
+                <% } %>
+              </div>
+              <div class="flex justify-between items-center">
+                <p class="text-xs text-gray-600 truncate flex-1 mr-2">
+                  <% if (msg.text && msg.text.length > 60) { %>
+                    <%= msg.text.substring(0, 60) %>...
+                  <% } else { %>
+                    <%= msg.text || 'No message content' %>
+                  <% } %>
+                </p>
+                <% if (hasUnseen) { %>
+                  <span class="flex-shrink-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    <%= msg.unseenCount %>
+                  </span>
+                <% } %>
               </div>
             </div>
-          </a>
-        <% }) %>
+          </div>
+        </a>
+      <% }); %>
       <% } else { %>
-        <div class="text-center text-gray-500 text-sm py-10">No messages yet</div>
+        <div class="text-center py-10">
+          <div class="text-gray-400 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 3.866-3.582 7-8 7a8.013 8.013 0 01-4.9-1.692L3 19l1.5-4.5A7.96 7.96 0 013 12c0-3.866 3.582-7 8-7s8 3.134 8 7z" />
+            </svg>
+          </div>
+          <p class="text-gray-500 text-sm">No messages yet</p>
+          <p class="text-gray-400 text-xs mt-1">Start a conversation with your tutors</p>
+        </div>
       <% } %>
     </div>
-
   </div>
+
   <script>
-  async function refreshMessages() {
-    try {
-      const res = await fetch('/messages/student/inbox');
-      const data = await res.text();
-      document.getElementById('message-list').innerHTML = data;
-    } catch (err) {
-      console.error("❌ Error refreshing messages", err);
+    const socket = io();
+    // Get current user ID from template
+    const currentUserId = '<%= (user && user.id) ? user.id : "" %>';
+
+    // Debug function
+    function debugMessages() {
+      console.log('=== MESSAGES DEBUG INFO ===');
+      
+      // Log all avatar images
+      document.querySelectorAll('.avatar-img').forEach((img, index) => {
+        console.log(`Avatar ${index}:`, {
+          src: img.src,
+          alt: img.alt,
+          parent: img.parentElement,
+          isVisible: img.offsetParent !== null,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          complete: img.complete,
+          onerror: img.onerror ? 'has handler' : 'no handler'
+        });
+      });
+      
+      // Log all message items
+      document.querySelectorAll('.message-item').forEach((item, index) => {
+        console.log(`Message Item ${index}:`, {
+          href: item.getAttribute('href'),
+          hasUnseen: item.classList.contains('unseen-message'),
+          senderId: item.getAttribute('data-sender-id'),
+          innerHTML: item.innerHTML
+        });
+      });
+      
+      // Check what data was passed from server
+      console.log('Template data available:', {
+        messages: <%= JSON.stringify(messages) %>,
+        user: '<%= user ? user.id : "no user" %>'
+      });
+      
+      alert('Check console for debug information');
     }
-  }
 
-  // Poll every 10 seconds
-  setInterval(refreshMessages, 10000);
-</script>
+    // Image error handler
+    function handleImageError(imgElement) {
+      console.log('❌ Image failed to load:', imgElement.src);
+      imgElement.style.display = 'none';
+      
+      // Find the fallback element
+      const parent = imgElement.parentElement;
+      const fallback = parent.querySelector('.avatar-fallback');
+      if (fallback) {
+        fallback.style.display = 'flex';
+        console.log('✅ Showing fallback initials');
+      }
+    }
 
+    // Helper function for Cloudinary URLs
+    function getImageUrl(image) {
+      if (!image) {
+        console.log('No image provided to getImageUrl');
+        return null;
+      }
+      
+      console.log('Processing image in JS:', image);
+      
+      if (typeof image === 'object' && image !== null) {
+        if (image.url) return image.url;
+        if (image.secure_url) return image.secure_url;
+        if (image.public_id) {
+          // IMPORTANT: Replace 'demo' with your actual Cloudinary cloud name
+          return `https://res.cloudinary.com/demo/image/upload/${image.public_id}`;
+        }
+      }
+      
+      if (typeof image === 'string') {
+        // Already a full URL
+        if (image.startsWith('http://') || image.startsWith('https://')) {
+          return image;
+        }
+        
+        // Cloudinary URL without protocol
+        if (image.includes('cloudinary.com') || image.includes('res.cloudinary.com')) {
+          return 'https://' + image.replace(/^\/\//, '');
+        }
+        
+        // Cloudinary public_id format
+        if (image.includes('/') && !image.includes('uploads/')) {
+          // IMPORTANT: Replace 'demo' with your actual Cloudinary cloud name
+          return 'https://res.cloudinary.com/demo/image/upload/' + image;
+        }
+        
+        // Local files
+        return image.startsWith('/') ? image : '/' + image;
+      }
+      
+      return null;
+    }
 
+    // Initialize real-time messaging
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('📱 Page loaded, currentUserId:', currentUserId);
+      
+      if (currentUserId && currentUserId !== '') {
+        console.log('📨 Student real-time messaging initialized for user:', currentUserId);
+        
+        // Join user's personal message room
+        socket.emit('joinMessageRoom', currentUserId);
+        
+        // Check image loading after page loads
+        setTimeout(() => {
+          console.log('🔍 Checking image loading status...');
+          document.querySelectorAll('.avatar-img').forEach((img, index) => {
+            if (img.complete) {
+              console.log(`✅ Image ${index} loaded:`, img.src);
+              if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+                console.log(`⚠️ Image ${index} has zero dimensions, triggering error`);
+                handleImageError(img);
+              }
+            } else {
+              console.log(`⏳ Image ${index} not complete yet:`, img.src);
+            }
+          });
+        }, 1000);
+      }
+      
+      // Auto-click debug button if there are issues
+      setTimeout(() => {
+        const images = document.querySelectorAll('.avatar-img');
+        if (images.length > 0 && images[0].naturalWidth === 0) {
+          console.log('🔄 Auto-debugging image issues...');
+          debugMessages();
+        }
+      }, 2000);
+    });
+
+    // Handle real-time unseen count updates
+    socket.on('unseenCountUpdate', function(data) {
+      console.log('📨 Unseen count update:', data.count);
+    });
+
+    // Handle new message notifications
+    socket.on('newMessageNotification', function(data) {
+      console.log('📨 New message notification:', data);
+      
+      // Show desktop notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(`New message from ${data.senderName}`, {
+          body: data.message,
+          tag: 'new-message'
+        });
+      }
+    });
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      document.addEventListener('click', function requestPermission() {
+        Notification.requestPermission().then(permission => {
+          console.log('Notification permission:', permission);
+          document.removeEventListener('click', requestPermission);
+        });
+      }, { once: true });
+    }
+
+    // Function to test image URLs
+    function testImageUrl(url) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          console.log('✅ Test image loaded:', url);
+          resolve({ url, status: 'loaded', width: img.naturalWidth, height: img.naturalHeight });
+        };
+        img.onerror = () => {
+          console.log('❌ Test image failed:', url);
+          resolve({ url, status: 'failed' });
+        };
+        img.src = url;
+      });
+    }
+
+    // Test all avatar images after page loads
+    window.addEventListener('load', async () => {
+      const images = Array.from(document.querySelectorAll('.avatar-img'));
+      console.log('🧪 Testing', images.length, 'avatar images...');
+      
+      for (const img of images) {
+        const result = await testImageUrl(img.src);
+        console.log(`Image test result: ${result.url} - ${result.status}`);
+        if (result.status === 'failed') {
+          handleImageError(img);
+        }
+      }
+    });
+  </script>
 </body>
 </html>

@@ -6,51 +6,69 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    .progress-ring {
-      transition: stroke-dashoffset 0.3s;
+    .active-video { border-left: 4px solid #3b82f6; background-color: #eff6ff; }
+    .video-container {
+      width: 100%;
+      background: #000;
+      position: relative;
+      min-height: 400px;
     }
-    .video-card {
-      transition: all 0.3s ease;
-    }
-    .video-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-    }
-    .active-video {
-      border-left: 4px solid #3b82f6;
-      background-color: #eff6ff;
+    .video-container video {
+      width: 100%;
+      height: auto;
+      max-height: 500px;
     }
   </style>
 </head>
 <body class="bg-gray-50 font-sans leading-relaxed">
-  <!-- Header -->
-  <header class="bg-white shadow-sm">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+ <header class="bg-white shadow-sm">
+  <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+    <!-- Left side: Back Button -->
+    <div class="flex items-center space-x-4">
+      <a href="/my-course"
+         class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+        </svg>
+        <span class="font-medium">Back</span>
+      </a>
+      
       <h1 class="text-xl font-bold text-gray-800 hidden md:block">Course Details</h1>
-      <div class="flex items-center">
-        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-          <i class="fas fa-user text-blue-600"></i>
-        </div>
+    </div>
+    
+    <!-- Right side: Profile -->
+    <div class="flex items-center">
+      <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500">
+        <% 
+          let tutorImageUrl = '/default-avatar.png';
+          if (tutor && tutor.image && tutor.image.url) {
+            tutorImageUrl = tutor.image.url;
+          } else if (tutor && typeof tutor.image === 'string' && tutor.image.startsWith('http')) {
+            tutorImageUrl = tutor.image;
+          } else if (tutor && typeof tutor.image === 'string') {
+            tutorImageUrl = '/' + tutor.image;
+          }
+        %>
+        <img src="<%= tutorImageUrl %>" alt="Tutor" class="w-full h-full object-cover">
       </div>
     </div>
-  </header>
+  </div>
+</header>
+
+ 
 
   <div class="max-w-5xl mx-auto py-8 px-4">
     <!-- Course Header -->
     <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
       <div class="relative">
-        <img src="/<%= course.thumbnail %>" class="w-full h-64 object-cover" alt="Course Thumbnail">
+        <img src="<%= course.thumbnail %>" class="w-full h-64 object-cover" alt="Course Thumbnail">
         <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
         <div class="absolute bottom-4 left-6 text-white">
           <h1 class="text-3xl font-bold mb-1"><%= course.courseTitle %></h1>
           <p class="text-gray-200"><%= course.shortDescription %></p>
         </div>
-        <div class="absolute top-4 right-4">
-          <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Active</span>
-        </div>
       </div>
 
-      <!-- Course Details -->
       <div class="p-6">
         <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
           <i class="fas fa-info-circle text-blue-500 mr-2"></i> About This Course
@@ -73,7 +91,7 @@
             <% course.videos.forEach((video, index) => { %>
               <div class="video-item mb-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 transition <%= index === 0 ? 'active-video' : '' %>" 
                    data-index="<%= index %>" 
-                   data-path="/<%= video.videoPath %>" 
+                   data-url="<%= video.videoPath %>"
                    data-title="<%= video.title %>">
                 <div class="flex items-start">
                   <div class="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-1">
@@ -82,7 +100,12 @@
                   <div class="flex-1">
                     <h3 class="font-medium text-gray-800 text-sm mb-1"><%= video.title %></h3>
                     <div class="flex items-center text-xs text-gray-500">
-                      <i class="far fa-clock mr-1"></i> <%= video.duration %>
+                      <% if (video.duration) { %>
+                        <i class="far fa-clock mr-1"></i> 
+                        <%= Math.floor(video.duration / 60) %>:<%= Math.round(video.duration % 60).toString().padStart(2, '0') %>
+                      <% } else { %>
+                        <i class="far fa-clock mr-1"></i> <%= video.duration || '0:00' %>
+                      <% } %>
                       <span class="mx-2">•</span>
                       <i class="far fa-play-circle mr-1"></i> Video
                     </div>
@@ -97,24 +120,44 @@
       <!-- Video Player -->
       <div class="w-full md:w-2/3">
         <div class="bg-white rounded-xl shadow-md overflow-hidden">
-          <!-- FIXED SIZE VIDEO -->
-          <div class="bg-black w-full h-[100px] flex items-center justify-center">
-            <video id="mainPlayer" controls class="w-full h-full object-contain">
-              <source src="/<%= course.videos[0].videoPath %>" type="video/mp4">
+          <div class="video-container">
+            <video 
+              id="mainPlayer" 
+              controls 
+              class="w-full"
+              poster="<%= course.thumbnail %>"
+            >
+              <% if (course.videos[0] && course.videos[0].videoPath) { %>
+                <source src="<%= course.videos[0].videoPath %>" type="video/mp4">
+              <% } else { %>
+                <p class="text-white p-4">No video source available</p>
+              <% } %>
               Your browser does not support the video tag.
             </video>
           </div>
           
           <div class="p-6">
-            <h2 id="currentVideoTitle" class="text-2xl font-bold text-gray-800 mb-2"><%= course.videos[0].title %></h2>
-            <p id="currentVideoDescription" class="text-gray-600 mb-6">Now watching: <%= course.videos[0].title %></p>
+            <h2 id="currentVideoTitle" class="text-2xl font-bold text-gray-800 mb-2">
+              <%= course.videos[0] ? course.videos[0].title : 'No video available' %>
+            </h2>
+            <p id="currentVideoDescription" class="text-gray-600 mb-6">
+              Now watching: <%= course.videos[0] ? course.videos[0].title : '' %>
+              <% if (course.videos[0] && course.videos[0].duration) { %>
+                | Duration: <%= Math.floor(course.videos[0].duration / 60) %>:<%= Math.round(course.videos[0].duration % 60).toString().padStart(2, '0') %>
+              <% } %>
+            </p>
             
             <div class="flex justify-between items-center border-t pt-4">
-              <button id="prevBtn" class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition flex items-center">
+              <button id="prevBtn" class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                 <i class="fas fa-arrow-left mr-2"></i> Previous
               </button>
               
-              <button id="nextBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center">
+              <div class="text-sm text-gray-500">
+                <span id="currentIndex">1</span> of <%= course.videos.length %>
+              </div>
+              
+              <button id="nextBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed" 
+                      <%= course.videos.length <= 1 ? 'disabled' : '' %>>
                 Next <i class="fas fa-arrow-right ml-2"></i>
               </button>
             </div>
@@ -123,7 +166,7 @@
       </div>
     </div>
 
-    <!-- Student Feedback Section -->
+    <!-- Student Feedback Section (KEEP THIS) -->
     <div class="mt-12">
       <div class="bg-white rounded-xl shadow-md overflow-hidden">
         <div class="p-6 border-b">
@@ -202,7 +245,7 @@
     </div>
   </div>
 
-  <!-- Watching JS -->
+  <!-- ✅ SINGLE CORRECT JavaScript -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const videoItems = document.querySelectorAll('.video-item');
@@ -211,54 +254,99 @@
       const currentVideoDescription = document.getElementById('currentVideoDescription');
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
+      const currentIndexSpan = document.getElementById('currentIndex');
       
       let currentVideoIndex = 0;
+      const totalVideos = videoItems.length;
 
-      // Update video player with correct video
+      console.log('Total videos:', totalVideos);
+
+      // Function to update video player
       function updateVideoPlayer() {
         const activeItem = videoItems[currentVideoIndex];
-        const videoPath = activeItem.getAttribute('data-path');
+        const videoUrl = activeItem.getAttribute('data-url');
         const videoTitle = activeItem.getAttribute('data-title');
         
-        mainPlayer.src = videoPath;
-        mainPlayer.play();
+        console.log('Loading video:', videoTitle, 'URL:', videoUrl);
         
+        // Update video source
+        mainPlayer.src = videoUrl;
+        mainPlayer.load();
+        
+        // Update UI
         currentVideoTitle.textContent = videoTitle;
-        currentVideoDescription.textContent = "Now watching: " + videoTitle;
-      }
-
-      // Update active state
-      function updateActiveVideo() {
+        currentVideoDescription.textContent = `Now watching: ${videoTitle}`;
+        currentIndexSpan.textContent = currentVideoIndex + 1;
+        
+        // Update button states
+        prevBtn.disabled = currentVideoIndex === 0;
+        nextBtn.disabled = currentVideoIndex === totalVideos - 1;
+        
+        // Update active video in list
         videoItems.forEach(v => v.classList.remove('active-video'));
         videoItems[currentVideoIndex].classList.add('active-video');
+        
+        // Try to play video
+        setTimeout(() => {
+          mainPlayer.play().catch(e => {
+            console.log("Autoplay prevented");
+          });
+        }, 500);
       }
 
       // Click on playlist item
       videoItems.forEach((item, index) => {
-        item.addEventListener('click', () => {
-          currentVideoIndex = index;
-          updateActiveVideo();
-          updateVideoPlayer();
+        item.addEventListener('click', function() {
+          console.log('Clicked video:', index + 1);
+          if (currentVideoIndex !== index) {
+            currentVideoIndex = index;
+            updateVideoPlayer();
+          }
         });
       });
 
       // Prev button
-      prevBtn.addEventListener('click', () => {
+      prevBtn.addEventListener('click', function() {
+        console.log('Previous clicked');
         if (currentVideoIndex > 0) {
           currentVideoIndex--;
-          updateActiveVideo();
           updateVideoPlayer();
         }
       });
 
       // Next button
-      nextBtn.addEventListener('click', () => {
-        if (currentVideoIndex < videoItems.length - 1) {
+      nextBtn.addEventListener('click', function() {
+        console.log('Next clicked');
+        if (currentVideoIndex < totalVideos - 1) {
           currentVideoIndex++;
-          updateActiveVideo();
           updateVideoPlayer();
         }
       });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft' && currentVideoIndex > 0) {
+          e.preventDefault();
+          currentVideoIndex--;
+          updateVideoPlayer();
+        } else if (e.key === 'ArrowRight' && currentVideoIndex < totalVideos - 1) {
+          e.preventDefault();
+          currentVideoIndex++;
+          updateVideoPlayer();
+        }
+      });
+
+      // Auto-play next video when current ends
+      mainPlayer.addEventListener('ended', function() {
+        console.log('Video ended, playing next');
+        if (currentVideoIndex < totalVideos - 1) {
+          currentVideoIndex++;
+          updateVideoPlayer();
+        }
+      });
+
+      // Initialize
+      updateVideoPlayer();
     });
   </script>
 </body>

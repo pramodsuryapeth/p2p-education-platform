@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Update Student Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background-color: #4F46E5;
+      transition: width 0.3s ease;
+    }
+    
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4">
+  <div class="max-w-2xl mx-auto">
+    <!-- Header with back button -->
+    <div class="flex items-center space-x-4 mb-6">
+      <a href="/my-course"
+         class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+        </svg>
+        <span class="font-medium">Back</span>
+      </a>
+      <h1 class="text-2xl font-bold text-gray-800">Update Profile</h1>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white shadow-md rounded-lg p-6">
+      <form action="/student-update-profile" method="POST" enctype="multipart/form-data" id="profileForm">
+        <!-- Hidden field for uploaded image URL -->
+        <input type="hidden" name="cloudinaryImageUrl" id="cloudinaryImageUrl" value="">
+        
+        <!-- Current Profile Image -->
+        <div class="mb-6 text-center">
+          <div class="inline-block relative">
+            <% 
+              let studentImageUrl = '/default-avatar.png';
+              if (typeof student.image === 'string' && student.image) {
+                if (student.image.startsWith('http')) {
+                  studentImageUrl = student.image;
+                } else {
+                  studentImageUrl = '/' + student.image;
+                }
+              }
+            %>
+            <img src="<%= studentImageUrl %>" 
+                 alt="Profile" 
+                 class="w-32 h-32 rounded-full object-cover border-4 border-blue-100"
+                 id="currentProfileImage"
+                 onerror="this.src='/default-avatar.png'">
+          </div>
+          
+          <!-- Loading indicator -->
+          <div id="imageLoading" class="hidden mt-2">
+            <div class="inline-flex items-center text-blue-600">
+              <i class="fas fa-spinner loading-spinner mr-2"></i>
+              <span class="text-sm">Uploading image...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Name -->
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-medium mb-2">Full Name *</label>
+          <input type="text" 
+                 name="name" 
+                 value="<%= student.name %>" 
+                 required
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <!-- Email -->
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-medium mb-2">Email *</label>
+          <input type="email" 
+                 name="email" 
+                 value="<%= student.email %>" 
+                 required
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <!-- Username -->
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-medium mb-2">Username</label>
+          <input type="text" 
+                 value="<%= student.username %>" 
+                 readonly
+                 class="w-full px-4 py-2 border border-gray-300 bg-gray-50 rounded-lg text-gray-500">
+          <p class="text-xs text-gray-500 mt-1">Username cannot be changed</p>
+        </div>
+
+        <!-- Profile Image Upload -->
+        <div class="mb-6">
+          <label class="block text-gray-700 text-sm font-medium mb-2">Upload New Profile Image</label>
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors relative">
+            <input type="file" 
+                   name="profileImage" 
+                   id="profileImage" 
+                   accept="image/*"
+                   class="hidden">
+            <label for="profileImage" class="cursor-pointer">
+              <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+              <p class="text-gray-600 font-medium">Click to select image</p>
+              <p class="text-gray-500 text-sm">JPG, PNG or GIF (Max 2MB)</p>
+            </label>
+            
+            <!-- Upload Progress Bar -->
+            <div id="uploadProgressContainer" class="hidden mt-3">
+              <div class="flex justify-between text-sm text-gray-600 mb-1">
+                <span id="uploadStatus">Uploading...</span>
+                <span id="uploadPercentage">0%</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div id="uploadProgressBar" class="progress-bar h-2.5 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Upload Status Message -->
+          <div id="uploadStatusMessage" class="mt-2 text-sm hidden"></div>
+          
+          <!-- Uploaded Image Preview -->
+          <div id="uploadedImagePreview" class="mt-3 hidden">
+            <div class="flex items-center space-x-3 bg-green-50 p-3 rounded-lg border border-green-200">
+              <img id="uploadedImage" class="w-12 h-12 rounded-full object-cover" src="" alt="Uploaded">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-green-700">✓ Ready to update profile</p>
+              </div>
+              <button type="button" onclick="removeUploadedImage()" class="text-red-500 hover:text-red-700">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Fields (Optional) -->
+        <div class="mb-6">
+          <label class="block text-gray-700 text-sm font-medium mb-2">Change Password (Optional)</label>
+          <input type="password" 
+                 name="password" 
+                 placeholder="New password (leave empty to keep current)"
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2">
+          <input type="password" 
+                 name="confirmPassword" 
+                 placeholder="Confirm new password"
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <!-- Submit Button -->
+        <div>
+          <button type="submit" 
+                  id="submitButton"
+                  class="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+            <i class="fas fa-save mr-2"></i> Update Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let selectedFile = null;
+    let uploadedImageUrl = '';
+    let isUploading = false;
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      const fileInput = document.getElementById('profileImage');
+      if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelect);
+      }
+    });
+    
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Validate file size
+      if (file.size > 2 * 1024 * 1024) {
+        showUploadStatus('File size exceeds 2MB limit. Please choose a smaller image.', 'error');
+        event.target.value = '';
+        return;
+      }
+      
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+      if (!validTypes.includes(file.type)) {
+        showUploadStatus('Please select a valid image file (JPG, PNG, GIF).', 'error');
+        event.target.value = '';
+        return;
+      }
+      
+      selectedFile = file;
+      
+      // Show preview immediately
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('currentProfileImage').src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      
+      // Show loading indicator
+      document.getElementById('imageLoading').classList.remove('hidden');
+      showUploadStatus('Starting upload...', 'info');
+      
+      // Start upload automatically
+      uploadToCloudinary();
+    }
+    
+    function uploadToCloudinary() {
+      if (!selectedFile || isUploading) return;
+      
+      isUploading = true;
+      
+      // Show progress bar
+      document.getElementById('uploadProgressContainer').classList.remove('hidden');
+      updateProgress(10, 'Preparing upload...');
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      formData.append('userId', '<%= student._id %>');
+      
+      // Real progress tracking with XMLHttpRequest
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+          const percentComplete = Math.round((e.loaded / e.total) * 90) + 10; // Start from 10%
+          updateProgress(percentComplete, 'Uploading...');
+        }
+      });
+      
+      xhr.addEventListener('load', function() {
+        if (xhr.status === 200) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            
+            if (data.success) {
+              updateProgress(100, 'Upload complete!');
+              uploadedImageUrl = data.url;
+              
+              // Store URL in hidden field
+              document.getElementById('cloudinaryImageUrl').value = data.url;
+              
+              // Show uploaded image preview
+              document.getElementById('uploadedImage').src = data.url;
+              document.getElementById('uploadedImagePreview').classList.remove('hidden');
+              
+              // Update main preview with Cloudinary URL
+              document.getElementById('currentProfileImage').src = data.url;
+              
+              // Hide loading indicator
+              document.getElementById('imageLoading').classList.add('hidden');
+              showUploadStatus('✓ Image uploaded successfully!', 'success');
+              
+              // Hide progress bar after delay
+              setTimeout(() => {
+                document.getElementById('uploadProgressContainer').classList.add('hidden');
+              }, 1500);
+              
+            } else {
+              handleUploadError(data.error || 'Upload failed');
+            }
+          } catch (error) {
+            handleUploadError('Error parsing server response');
+          }
+        } else {
+          handleUploadError('Server error: ' + xhr.status);
+        }
+        
+        isUploading = false;
+      });
+      
+      xhr.addEventListener('error', function() {
+        handleUploadError('Network error. Please check your connection.');
+        isUploading = false;
+      });
+      
+      xhr.addEventListener('timeout', function() {
+        handleUploadError('Upload timeout. Please try again.');
+        isUploading = false;
+      });
+      
+      // Open and send request
+      xhr.open('POST', '/upload-to-cloudinary');
+      xhr.timeout = 30000; // 30 second timeout
+      xhr.send(formData);
+    }
+    
+    function updateProgress(percent, status) {
+      document.getElementById('uploadProgressBar').style.width = percent + '%';
+      document.getElementById('uploadPercentage').textContent = percent + '%';
+      document.getElementById('uploadStatus').textContent = status;
+    }
+    
+    function showUploadStatus(message, type) {
+      const statusDiv = document.getElementById('uploadStatusMessage');
+      statusDiv.textContent = message;
+      statusDiv.classList.remove('hidden');
+      
+      // Set color based on type
+      statusDiv.className = 'mt-2 text-sm';
+      if (type === 'success') {
+        statusDiv.classList.add('text-green-600');
+      } else if (type === 'error') {
+        statusDiv.classList.add('text-red-600');
+      } else if (type === 'info') {
+        statusDiv.classList.add('text-blue-600');
+      }
+    }
+    
+    function handleUploadError(errorMessage) {
+      updateProgress(0, 'Upload failed');
+      showUploadStatus('❌ ' + errorMessage, 'error');
+      document.getElementById('imageLoading').classList.add('hidden');
+      document.getElementById('uploadProgressContainer').classList.add('hidden');
+      
+      // Reset file input
+      document.getElementById('profileImage').value = '';
+      selectedFile = null;
+      
+      // Reset to original image
+      document.getElementById('currentProfileImage').src = '<%= studentImageUrl %>';
+    }
+    
+    function removeUploadedImage() {
+      selectedFile = null;
+      uploadedImageUrl = '';
+      document.getElementById('cloudinaryImageUrl').value = '';
+      document.getElementById('uploadedImagePreview').classList.add('hidden');
+      document.getElementById('profileImage').value = '';
+      document.getElementById('uploadStatusMessage').classList.add('hidden');
+      
+      // Reset to original image
+      document.getElementById('currentProfileImage').src = '<%= studentImageUrl %>';
+      
+      showUploadStatus('Image removed. Select a new image to upload.', 'info');
+      setTimeout(() => {
+        document.getElementById('uploadStatusMessage').classList.add('hidden');
+      }, 3000);
+    }
+    
+    // Form submission
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+      // If a file was selected but not uploaded, prevent submission
+      const fileInput = document.getElementById('profileImage');
+      if (fileInput.files.length > 0 && !uploadedImageUrl && isUploading) {
+        e.preventDefault();
+        showUploadStatus('Please wait for the image to finish uploading...', 'error');
+        return;
+      }
+      
+      if (fileInput.files.length > 0 && !uploadedImageUrl && !isUploading) {
+        e.preventDefault();
+        showUploadStatus('Image upload failed. Please try selecting the image again.', 'error');
+        return;
+      }
+      
+      // Show loading on submit
+      const submitBtn = document.getElementById('submitButton');
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+      submitBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>

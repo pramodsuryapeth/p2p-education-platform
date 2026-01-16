@@ -6,12 +6,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <style>
+    /* Custom styles for better image handling */
+    .avatar-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .avatar-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #3b82f6;
+      color: white;
+    }
+    .message-item:hover {
+      background-color: #f9fafb;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex justify-center items-start pt-10 relative">
 
   <!-- Dashboard Button with Real-time Badge -->
   <div class="absolute top-4 right-4">
-    <a href="/dashboard" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:from-blue-600 hover:to-indigo-700 transition duration-200 relative">
+    <a href="/dash" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:from-blue-600 hover:to-indigo-700 transition duration-200 relative">
       🏠 Dashboard
       <span id="globalUnseenBadge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full hidden"></span>
     </a>
@@ -28,52 +57,116 @@
 
     <!-- Message List -->
     <div id="messageList" class="divide-y">
-      <% if (messages && messages.length > 0) { %>
-        <% messages.forEach(msg => { %>
-          <a href="/messages/<%= msg.senderId %>" class="block hover:bg-gray-50 transition message-item" data-contact-id="<%= msg.senderId %>">
-            <div class="px-4 py-3 flex items-start space-x-3">
-              <!-- Avatar/Icon -->
-              <div class="w-10 h-10 flex items-center justify-center bg-blue-500 rounded-full text-white shadow">
-                <% if (msg.avatar && msg.avatar !== 'uploads/default-avatar.jpg') { %>
-                  <img src="<%= msg.avatar %>" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
-                <% } else { %>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 3.866-3.582 7-8 7a8.013 8.013 0 01-4.9-1.692L3 19l1.5-4.5A7.96 7.96 0 013 12c0-3.866 3.582-7 8-7s8 3.134 8 7z" />
-                  </svg>
+      <% 
+        // Helper function to get Cloudinary image URL
+        const getCloudinaryUrl = (image) => {
+          if (!image) return null;
+          
+          // If image is an object with url property (Cloudinary format)
+          if (typeof image === 'object' && image.url) {
+            return image.url;
+          }
+          
+          // If image is a string
+          if (typeof image === 'string') {
+            // Check if it's already a Cloudinary URL
+            if (image.startsWith('http') || image.includes('cloudinary') || image.includes('res.cloudinary.com')) {
+              return image;
+            }
+            
+            // Check if it's a local upload path
+            if (image.startsWith('uploads/') || image.startsWith('/uploads/')) {
+              // For local uploads, you might want to serve them differently
+              // For now, assume they're at root
+              return image.replace(/^\/?/, '/');
+            }
+            
+            // If it's just a filename, prepend slash
+            if (!image.includes('/')) {
+              return '/' + image;
+            }
+            
+            return image;
+          }
+          
+          return null;
+        };
+
+        // Helper function to get initials from name
+        const getInitials = (name) => {
+          if (!name) return 'U';
+          return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        };
+
+        if (messages && messages.length > 0) { 
+          messages.forEach(msg => { 
+            const avatarUrl = getCloudinaryUrl(msg.avatar);
+            const initials = getInitials(msg.username);
+      %>
+        <a href="/messages/<%= msg.senderId %>" class="block hover:bg-gray-50 transition message-item" data-contact-id="<%= msg.senderId %>">
+          <div class="px-4 py-3 flex items-start space-x-3">
+            <!-- Avatar -->
+            <div class="avatar-container">
+              <% if (avatarUrl) { %>
+                <img 
+                  src="<%= avatarUrl %>" 
+                  alt="<%= msg.username %>" 
+                  class="avatar-img"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                  loading="lazy"
+                >
+                <div class="avatar-fallback hidden" style="display: none;">
+                  <%= initials %>
+                </div>
+              <% } else { %>
+                <div class="avatar-fallback">
+                  <%= initials %>
+                </div>
+              <% } %>
+            </div>
+
+            <!-- Message Preview -->
+            <div class="flex-1 min-w-0"> <!-- Added min-w-0 for text truncation -->
+              <div class="flex justify-between items-center mb-1">
+                <p class="text-sm font-semibold text-gray-900 truncate">
+                  <%= msg.username %>
+                </p>
+                <% if (msg.timestamp) { %>
+                  <span class="text-xs text-gray-400 whitespace-nowrap ml-2">
+                    <%= new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
+                  </span>
                 <% } %>
               </div>
-
-              <!-- Message Preview -->
-              <div class="flex-1">
-                <div class="flex justify-between items-center">
-                  <p class="text-sm font-semibold text-gray-900">
-                    <%= msg.username %>
-                  </p>
-                  <% if (msg.timestamp) { %>
-                    <span class="text-xs text-gray-400">
-                      <%= new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
-                    </span>
-                  <% } %>
-                </div>
-                <div class="flex justify-between items-center">
-                  <p class="text-xs text-gray-600 truncate">
-                    <%= msg.text %>
-                  </p>
-                  <% if (msg.unseenCount > 0) { %>
-                    <span class="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full unseen-badge" id="badge-<%= msg.senderId %>">
-                      <%= msg.unseenCount %>
-                    </span>
+              <div class="flex justify-between items-center">
+                <p class="text-xs text-gray-600 truncate flex-1 mr-2">
+                  <% if (msg.text && msg.text.length > 50) { %>
+                    <%= msg.text.substring(0, 50) %>...
                   <% } else { %>
-                    <span class="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full unseen-badge hidden" id="badge-<%= msg.senderId %>">0</span>
+                    <%= msg.text || 'No message content' %>
                   <% } %>
-                </div>
+                </p>
+                <% if (msg.unseenCount > 0) { %>
+                  <span class="flex-shrink-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center unseen-badge" id="badge-<%= msg.senderId %>">
+                    <%= msg.unseenCount %>
+                  </span>
+                <% } else { %>
+                  <span class="flex-shrink-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center unseen-badge hidden" id="badge-<%= msg.senderId %>">0</span>
+                <% } %>
               </div>
             </div>
-          </a>
-        <% }) %>
+          </div>
+        </a>
+      <% }); %>
       <% } else { %>
-        <div class="text-center text-gray-500 text-sm py-10">No messages available</div>
+        <div class="text-center py-8">
+          <div class="text-gray-400 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 3.866-3.582 7-8 7a8.013 8.013 0 01-4.9-1.692L3 19l1.5-4.5A7.96 7.96 0 013 12c0-3.866 3.582-7 8-7s8 3.134 8 7z" />
+            </svg>
+          </div>
+          <p class="text-gray-500 text-sm">No messages available</p>
+          <p class="text-gray-400 text-xs mt-1">Start a conversation with tutors</p>
+        </div>
       <% } %>
     </div>
   </div>
@@ -82,6 +175,33 @@
     const socket = io();
     // ✅ SAFE: Handle cases where user might not be defined
     const currentUserId = '<%= (user && user.id) ? user.id : "" %>';
+    
+    // Helper function for image URLs in JavaScript
+    function getCloudinaryUrl(image) {
+      if (!image) return null;
+      
+      if (typeof image === 'object' && image.url) {
+        return image.url;
+      }
+      
+      if (typeof image === 'string') {
+        if (image.startsWith('http') || image.includes('cloudinary') || image.includes('res.cloudinary.com')) {
+          return image;
+        }
+        
+        if (image.startsWith('uploads/') || image.startsWith('/uploads/')) {
+          return image.replace(/^\/?/, '/');
+        }
+        
+        if (!image.includes('/')) {
+          return '/' + image;
+        }
+        
+        return image;
+      }
+      
+      return null;
+    }
 
     // Initialize real-time messaging for student
     document.addEventListener('DOMContentLoaded', function() {
@@ -104,7 +224,21 @@
               userId: currentUserId,
               contactId: contactId
             });
+            
+            // Update badge immediately for better UX
+            const badge = document.getElementById(`badge-${contactId}`);
+            if (badge) {
+              badge.classList.add('hidden');
+            }
           });
+        });
+        
+        // Preload avatar images for better UX
+        document.querySelectorAll('.avatar-img').forEach(img => {
+          if (img.src && !img.src.includes('default-avatar')) {
+            const tempImg = new Image();
+            tempImg.src = img.src;
+          }
         });
       } else {
         console.warn('Student ID not available for real-time messaging');
@@ -126,6 +260,15 @@
         
         // Update browser tab title
         document.title = `(${data.count}) Student Messages`;
+        
+        // Optional: Play notification sound
+        try {
+          const audio = new Audio('/notification.mp3');
+          audio.volume = 0.3;
+          audio.play().catch(e => console.log('Audio play failed:', e));
+        } catch (e) {
+          console.log('Notification sound not available');
+        }
       } else {
         totalUnseen.classList.add('hidden');
         globalBadge.classList.add('hidden');
@@ -162,15 +305,94 @@
         if (Notification.permission === 'granted') {
           new Notification(`New message from ${data.senderName}`, {
             body: data.message,
-            icon: '/uploads/default-avatar.jpg'
+            icon: getCloudinaryUrl(data.senderAvatar) || '/default-avatar.jpg'
           });
         }
+        
+        // Show in-app notification toast
+        showMessageToast(data.senderName, data.message, data.senderAvatar);
       }
     });
 
+    // Function to show in-app notification toast
+    function showMessageToast(senderName, message, avatarUrl) {
+      // Remove existing toast if any
+      const existingToast = document.querySelector('.message-toast');
+      if (existingToast) {
+        existingToast.remove();
+      }
+      
+      // Create toast
+      const toast = document.createElement('div');
+      toast.className = 'message-toast fixed top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg border border-gray-200 p-3 max-w-sm z-50 animate-slideDown';
+      toast.style.animation = 'slideDown 0.3s ease-out';
+      
+      const avatar = getCloudinaryUrl(avatarUrl);
+      const initials = senderName ? senderName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U';
+      
+      toast.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <div class="avatar-container">
+            ${avatar ? `
+              <img src="${avatar}" alt="${senderName}" class="w-8 h-8 rounded-full object-cover" 
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold hidden">
+                ${initials}
+              </div>
+            ` : `
+              <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">
+                ${initials}
+              </div>
+            `}
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-gray-800">${senderName}</p>
+            <p class="text-xs text-gray-600 truncate">${message}</p>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Auto-remove toast after 5 seconds
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.style.animation = 'slideUp 0.3s ease-out';
+          setTimeout(() => {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, 300);
+        }
+      }, 5000);
+      
+      // Add CSS animations if not already added
+      if (!document.querySelector('#toast-animations')) {
+        const style = document.createElement('style');
+        style.id = 'toast-animations';
+        style.textContent = `
+          @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+          }
+          @keyframes slideUp {
+            from { transform: translate(-50%, 0); opacity: 1; }
+            to { transform: translate(-50%, -100%); opacity: 0; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+
     // Request notification permission
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+      // Only ask when user interacts with page
+      document.addEventListener('click', function requestPermission() {
+        Notification.requestPermission().then(permission => {
+          console.log('Notification permission:', permission);
+          document.removeEventListener('click', requestPermission);
+        });
+      }, { once: true });
     }
   </script>
 

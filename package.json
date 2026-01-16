@@ -14,7 +14,7 @@
     "@daily-co/daily-js": "^0.84.0",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
-    "cloudinary": "^2.7.0",
+    "cloudinary": "^1.41.3",
     "connect-flash": "^0.1.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
@@ -24,13 +24,17 @@
     "firebase": "^12.4.0",
     "firebase-admin": "^13.5.0",
     "jsonwebtoken": "^9.0.2",
+    "method-override": "^3.0.0",
     "mongoose": "^8.11.0",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "new-folder": "file:",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "streamifier": "^0.1.1",
+    "uploadthing": "^7.7.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.11"
   }
 }

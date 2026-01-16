@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <title>My Uploaded Courses</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .course-card {
+      transition: all 0.3s ease;
+    }
+    .course-card:hover {
+      transform: translateY(-5px);
+    }
+  </style>
 </head>
 <body class="bg-gray-100">
   
@@ -16,21 +25,64 @@
   </div>
 
   <!-- Main Content -->
-  <div class="max-w-7xl mx-auto p-6">
+  <div class="max-w-7xl mx-auto p-6 pt-16">
     <h1 class="text-3xl font-bold text-center mb-10">📚 My Uploaded Courses</h1>
 
     <% if (courses.length === 0) { %>
-      <p class="text-center text-gray-600">No courses uploaded yet.</p>
+      <div class="text-center py-12">
+        <i class="fas fa-book-open text-5xl text-gray-300 mb-4"></i>
+        <p class="text-gray-600 text-lg">No courses uploaded yet.</p>
+        <a href="/upload-course" class="inline-block mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition">
+          Upload Your First Course
+        </a>
+      </div>
     <% } else { %>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         <% courses.forEach(course => { %>
-          <div class="bg-white shadow rounded-lg overflow-hidden hover:shadow-xl transition">
+          <div class="bg-white shadow rounded-lg overflow-hidden hover:shadow-xl transition course-card">
             <a href="/viewcourse/<%= course._id %>">
-              <img src="/<%= course.thumbnail %>" class="w-full h-48 object-cover" alt="Course Thumbnail">
+              <% 
+                let thumbnailUrl = '/default-thumbnail.jpg';
+                if (course.thumbnail && course.thumbnail.url) {
+                  thumbnailUrl = course.thumbnail.url;
+                } else if (typeof course.thumbnail === 'string' && course.thumbnail.startsWith('http')) {
+                  thumbnailUrl = course.thumbnail;
+                } else if (typeof course.thumbnail === 'string') {
+                  thumbnailUrl = '/' + course.thumbnail;
+                }
+              %>
+              <img src="<%= thumbnailUrl %>" class="w-full h-48 object-cover" alt="Course Thumbnail">
             </a>
             <div class="p-4">
-              <h2 class="text-lg font-semibold"><%= course.courseTitle %></h2>
+              <h2 class="text-lg font-semibold text-gray-800"><%= course.courseTitle %></h2>
               <p class="text-sm text-gray-600 mt-1"><%= course.shortDescription %></p>
+              
+              <!-- Upload Date -->
+              <div class="mt-2 mb-3">
+                <span class="text-xs text-gray-500">
+                  <i class="fas fa-calendar mr-1"></i>
+                  Uploaded: <%= new Date(course.uploadedAt).toLocaleDateString() %>
+                </span>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                <!-- View Button -->
+                <a href="/viewcourse/<%= course._id %>" 
+                   class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-sm transition flex items-center space-x-1">
+                  <i class="fas fa-eye text-xs"></i>
+                  <span>View</span>
+                </a>
+                <!-- Delete Button -->
+                <form action="/delete-course/<%= course._id %>" method="POST" class="inline-block" 
+                      onsubmit="return confirm('Are you sure you want to delete \"<%= course.courseTitle %>\"?')">
+                  <button type="submit" 
+                          class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-sm transition flex items-center space-x-1">
+                    <i class="fas fa-trash text-xs"></i>
+                    <span>Delete</span>
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         <% }) %>
@@ -38,5 +90,23 @@
     <% } %>
   </div>
 
+  <!-- Flash Messages Display -->
+  <% if (successMessage && successMessage.length > 0) { %>
+    <div class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+      <%= successMessage %>
+      <button onclick="this.parentElement.remove()" class="ml-4 hover:text-green-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  <% } %>
+  
+  <% if (errorMessage && errorMessage.length > 0) { %>
+    <div class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+      <%= errorMessage %>
+      <button onclick="this.parentElement.remove()" class="ml-4 hover:text-red-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  <% } %>
 </body>
 </html>

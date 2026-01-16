@@ -53,10 +53,35 @@
     .password-toggle:hover {
       color: #4F46E5;
     }
+    
+    .image-preview {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #e5e7eb;
+      display: none;
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+    
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 md:p-8">
-  <div class="w-full max-w-md bg-white rounded-xl overflow-hidden card-shadow">
+  <div class="w-full max-w-lg bg-white rounded-xl overflow-hidden card-shadow">
     <!-- Header Section -->
     <div class="bg-primary text-white p-6 text-center">
       <div class="flex items-center justify-center space-x-3 mb-4">
@@ -91,82 +116,93 @@
         <% } %>
       </div>
 
-      <form action="/register" method="post" class="space-y-4">
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <i class="fas fa-user text-gray-400"></i>
+      <form action="/register" method="post" enctype="multipart/form-data" class="space-y-6">
+        <!-- Profile Image Upload Section -->
+        <div class="flex flex-col items-center space-y-4">
+          <div class="relative">
+            <img id="image-preview" class="image-preview" alt="Profile Preview" />
+            <div class="w-24 h-24 rounded-full bg-gray-100 border-4 border-gray-300 flex items-center justify-center overflow-hidden" id="placeholder-image">
+              <i class="fas fa-user text-gray-400 text-3xl"></i>
+            </div>
           </div>
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            required
-            autocomplete="name"
-            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
-          />
+          
+          <div class="file-input-wrapper">
+            <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors font-medium">
+              <i class="fas fa-upload mr-2"></i>Upload Profile Picture
+            </button>
+            <input 
+              type="file" 
+              name="profileImage" 
+              id="profileImage" 
+              accept="image/*"
+              class="w-full"
+            />
+          </div>
+          <p class="text-xs text-gray-500 text-center">Upload a JPG, PNG or GIF image. Max size 2MB.</p>
         </div>
 
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <i class="fas fa-envelope text-gray-400"></i>
+        <div class="space-y-4">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-user text-gray-400"></i>
+            </div>
+            <input
+              type="text"
+              name="name"
+              placeholder="Full Name"
+              required
+              autocomplete="name"
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
+            />
           </div>
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            required
-            autocomplete="email"
-            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
-          />
-        </div>
 
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <i class="fas fa-at text-gray-400"></i>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-envelope text-gray-400"></i>
+            </div>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email Address"
+              required
+              autocomplete="email"
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
+            />
           </div>
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            required
-            autocomplete="username"
-            maxlength="20"
-            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
-          />
-        </div>
 
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <i class="fas fa-lock text-gray-400"></i>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-at text-gray-400"></i>
+            </div>
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              required
+              autocomplete="username"
+              maxlength="20"
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
+            />
           </div>
-          <input
-            type="password"
-            name="password"
-            id="password"
-            placeholder="Password"
-            required
-            autocomplete="current-password"
-            minlength="6"
-            class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
-          />
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-            <i class="fas fa-eye-slash password-toggle" id="password-toggle"></i>
-          </div>
-        </div>
 
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <i class="fas fa-birthday-cake text-gray-400"></i>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-lock text-gray-400"></i>
+            </div>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              placeholder="Password"
+              required
+              autocomplete="current-password"
+              minlength="6"
+              class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
+            />
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+              <i class="fas fa-eye-slash password-toggle" id="password-toggle"></i>
+            </div>
           </div>
-          <input
-            type="number"
-            name="age"
-            placeholder="Age"
-            required
-            min="1"
-            max="100"
-            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary input-focus"
-          />
         </div>
         
         <input type="hidden" name="userclass" value="student" />
@@ -217,6 +253,45 @@
         setTimeout(() => el.remove(), 300);
       });
     }, 5000);
+
+    // Image preview functionality
+    document.getElementById('profileImage').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      const preview = document.getElementById('image-preview');
+      const placeholder = document.getElementById('placeholder-image');
+      
+      if (file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+          placeholder.style.display = 'none';
+        }
+        
+        reader.readAsDataURL(file);
+        
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+          alert('File size exceeds 2MB limit. Please choose a smaller image.');
+          this.value = '';
+          preview.style.display = 'none';
+          placeholder.style.display = 'flex';
+        }
+        
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+          alert('Please select a valid image file (JPG, PNG, or GIF).');
+          this.value = '';
+          preview.style.display = 'none';
+          placeholder.style.display = 'flex';
+        }
+      } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'flex';
+      }
+    });
   </script>
 </body>
 </html>

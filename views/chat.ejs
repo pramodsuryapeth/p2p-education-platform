@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Chat with <%= receiver.name || 'User' %></title>
+  <title>Chat with <%= receiver.name || receiver.username || 'User' %></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -64,13 +64,33 @@
         </button>
         
         <!-- User Avatar and Info -->
-        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-          <i class="fas fa-user text-white"></i>
+        <div class="w-16 h-16 rounded-full overflow-hidden border-3 border-white">
+          <!-- Cloudinary Image Support -->
+          <% 
+            let welcomeImageUrl = '/default-avatar.png';
+            let welcomeAltText = 'User Avatar';
+            
+            if (receiver) {
+              // Check both image and avatar fields
+              let imageField = receiver.image || receiver.avatar;
+              
+              if (imageField) {
+                if (typeof imageField === 'object' && imageField.url) {
+                  welcomeImageUrl = imageField.url;
+                } else if (typeof imageField === 'string' && imageField.startsWith('http')) {
+                  welcomeImageUrl = imageField;
+                } else if (typeof imageField === 'string' && imageField.trim() !== '') {
+                  welcomeImageUrl = '/' + imageField;
+                }
+              }
+              welcomeAltText = receiver.name || receiver.username || 'User';
+            }
+          %>
+          <img src="<%= welcomeImageUrl %>" alt="<%= welcomeAltText %>" class="w-full h-full object-cover">
         </div>
         <div>
           <h2 class="text-lg font-semibold"><%= receiver.name || receiver.username || 'User' %></h2>
-          <div class="flex items-center space-x-2">
-
+          <div class="flex items-center space-x-2 mt-1">
           </div>
         </div>
       </div>
@@ -83,7 +103,6 @@
           </span>
           typing
         </span>
-        
       </div>
     </div>
 
@@ -96,7 +115,7 @@
 
       <% messages.forEach(msg => { %>
         <div class="message-enter">
-          <li class="flex <%= msg.senderId.toString() === senderId.toString() ? 'justify-end' : 'justify-start' %>">
+          <div class="flex <%= msg.senderId.toString() === senderId.toString() ? 'justify-end' : 'justify-start' %>">
             <div class="max-w-[75%]">
               <!-- Message Bubble -->
               <div class="px-4 py-3 rounded-2xl break-words shadow-sm
@@ -122,7 +141,7 @@
                 <% } %>
               </div>
             </div>
-          </li>
+          </div>
         </div>
       <% }) %>
     </div>
@@ -157,7 +176,7 @@
       </form>
       
       <!-- Quick Replies -->
-      <div id="quickReplies" class="flex space-x-2 mt-3 overflow-x-auto hidden">
+      <div id="quickReplies" class="flex space-x-2 mt-3 overflow-x-auto">
         <button class="quick-reply-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition whitespace-nowrap">
           Hello!
         </button>
@@ -223,7 +242,7 @@
       });
       
       messageDiv.innerHTML = `
-        <li class="flex ${isSender ? "justify-end" : "justify-start"}">
+        <div class="flex ${isSender ? "justify-end" : "justify-start"}">
           <div class="max-w-[75%]">
             <div class="px-4 py-3 rounded-2xl break-words shadow-sm
                         ${isSender 
@@ -240,7 +259,7 @@
               ` : ''}
             </div>
           </div>
-        </li>
+        </div>
       `;
       
       chatBox.appendChild(messageDiv);
@@ -263,11 +282,9 @@
     // Message seen confirmation
     socket.on('messageSeen', (data) => {
       // Update the checkmark for sent messages
-      const messages = chatBox.querySelectorAll('li');
-      messages.forEach(msg => {
-        if (msg.querySelector('.fa-check')) {
-          msg.querySelector('.fa-check').className = 'fas fa-check-double text-blue-400';
-        }
+      const messages = chatBox.querySelectorAll('.fa-check');
+      messages.forEach(checkmark => {
+        checkmark.className = 'fas fa-check-double text-blue-400';
       });
     });
 
@@ -355,23 +372,8 @@
     // Focus input on load
     messageInput.focus();
 
-    // Tooltip functionality
-    document.querySelectorAll('.tooltip').forEach(element => {
-      element.addEventListener('mouseenter', function() {
-        const title = this.getAttribute('title');
-        if (title) {
-          const tooltip = document.createElement('div');
-          tooltip.className = 'absolute bg-gray-800 text-white text-xs px-2 py-1 rounded -mt-8 transform -translate-x-1/2 left-1/2 z-50';
-          tooltip.textContent = title;
-          this.appendChild(tooltip);
-        }
-      });
-      
-      element.addEventListener('mouseleave', function() {
-        const tooltip = this.querySelector('div');
-        if (tooltip) tooltip.remove();
-      });
-    });
+    // Initial scroll to bottom
+    chatBox.scrollTop = chatBox.scrollHeight;
   </script>
 
 </body>

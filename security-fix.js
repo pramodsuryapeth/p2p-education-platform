@@ -36,7 +36,7 @@ try {
   console.log('\n✅ Security updates completed!');
   console.log('\n📝 Next steps:');
   console.log('1. Run: npm audit fix --force');
-  console.log('2. Test your application');
+  console.log('2. Test your application: npx nodemon');
   console.log('3. Consider replacing new-folder if possible');
   
 } catch (error) {

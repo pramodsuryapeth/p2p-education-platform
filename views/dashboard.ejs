@@ -42,6 +42,20 @@
       opacity: 0;
       transform: translateX(100%);
     }
+    
+    /* Dropdown menu */
+    .dropdown-menu {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.2s ease;
+    }
+    
+    .dropdown-group:hover .dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -89,28 +103,77 @@
             <i class="fas fa-envelope text-gray-600"></i>
           </a>
 
-          <!-- User Profile -->
-          <div class="flex items-center space-x-3">
-            <div class="text-right">
-              <p class="text-sm font-medium text-gray-800"><%= tutor.name %></p>
-              <p class="text-xs text-gray-500">Tutor</p>
+          <!-- User Profile with Dropdown -->
+          <div class="relative dropdown-group">
+            <div class="flex items-center space-x-3 cursor-pointer">
+              <div class="text-right">
+                <p class="text-sm font-medium text-gray-800">
+                  <%= tutor ? tutor.name : 'Tutor' %>
+                </p>
+                <p class="text-xs text-gray-500">Tutor</p>
+              </div>
+              <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500">
+                <!-- Cloudinary Image Support -->
+                <% 
+                  let tutorImageUrl = '/default-avatar.png';
+                  if (tutor && tutor.image) {
+                    if (typeof tutor.image === 'object' && tutor.image.url) {
+                      tutorImageUrl = tutor.image.url;
+                    } else if (typeof tutor.image === 'string' && tutor.image.startsWith('http')) {
+                      tutorImageUrl = tutor.image;
+                    } else if (typeof tutor.image === 'string') {
+                      tutorImageUrl = '/' + tutor.image;
+                    }
+                  }
+                %>
+                <img src="<%= tutorImageUrl %>" alt="<%= tutor ? tutor.name : 'Tutor' %>" class="w-full h-full object-cover">
+              </div>
             </div>
-            <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500">
-              <img src="/<%= tutor.image %>" alt="<%= tutor.name %>" class="w-full h-full object-cover">
+            
+            <!-- Dropdown Menu -->
+            <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+              <div class="py-2">
+                <!-- Profile Info -->
+                <div class="px-4 py-3 border-b border-gray-100">
+                  <p class="font-medium text-gray-800"><%= tutor ? tutor.name : 'Tutor' %></p>
+                  <p class="text-sm text-gray-500">Tutor Account</p>
+                </div>
+                
+                <!-- Update Profile Link -->
+                <a href="/update" class="flex items-center space-x-2 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                  <i class="fas fa-user-edit text-blue-500"></i>
+                  <span>Update Profile</span>
+                </a>
+                
+                <!-- Messages -->
+                <a href="/messages" class="flex items-center space-x-2 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                  <i class="fas fa-envelope"></i>
+                  <span>Messages</span>
+                </a>
+                
+                <!-- My Courses -->
+                <a href="/my-course" class="flex items-center space-x-2 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                  <i class="fas fa-play-circle"></i>
+                  <span>My Courses</span>
+                </a>
+                
+                <!-- Divider -->
+                <div class="border-t border-gray-100 my-1"></div>
+                
+                <!-- Logout -->
+                <a href="/logout" class="flex items-center space-x-2 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors">
+                  <i class="fas fa-sign-out-alt"></i>
+                  <span>Logout</span>
+                </a>
+              </div>
             </div>
           </div>
-
-          <!-- Logout -->
-          <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center space-x-2">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Content -->
+  <!-- The rest of your dashboard content remains exactly the same -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     
     <!-- Welcome Section -->
@@ -118,10 +181,25 @@
       <div class="flex flex-col md:flex-row justify-between items-center">
         <div class="flex items-center space-x-4">
           <div class="w-16 h-16 rounded-full overflow-hidden border-3 border-white">
-            <img src="/<%= tutor.image %>" alt="<%= tutor.name %>" class="w-full h-full object-cover">
+            <!-- Cloudinary Image Support -->
+            <% 
+              let welcomeImageUrl = '/default-avatar.png';
+              if (tutor && tutor.image) {
+                if (typeof tutor.image === 'object' && tutor.image.url) {
+                  welcomeImageUrl = tutor.image.url;
+                } else if (typeof tutor.image === 'string' && tutor.image.startsWith('http')) {
+                  welcomeImageUrl = tutor.image;
+                } else if (typeof tutor.image === 'string') {
+                  welcomeImageUrl = '/' + tutor.image;
+                }
+              }
+            %>
+            <img src="<%= welcomeImageUrl %>" alt="<%= tutor ? tutor.name : 'Tutor' %>" class="w-full h-full object-cover">
           </div>
           <div>
-            <h2 class="text-2xl font-bold">Welcome back, <%= tutor.name %>! 👋</h2>
+            <h2 class="text-2xl font-bold">
+              Welcome back, <%= tutor ? tutor.name : 'Tutor' %>! 👋
+            </h2>
             <p class="text-blue-100">Ready to inspire some students today?</p>
           </div>
         </div>
@@ -204,11 +282,11 @@
       <div id="noticesContainer" class="space-y-4">
         <% if (notices && notices.length > 0) { %>
           <% notices.forEach(notice => { %>
-            <div class="notice-card bg-gray-50 border-l-4 border-<%= notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue' %>-500 p-4 rounded-r-lg">
+            <div class="notice-card bg-gray-50 border-l-4 <%= notice.priority === 'high' ? 'border-red-500' : notice.priority === 'medium' ? 'border-yellow-500' : 'border-blue-500' %> p-4 rounded-r-lg">
               <div class="flex justify-between items-start mb-2">
                 <h3 class="font-semibold text-gray-800"><%= notice.title %></h3>
                 <div class="flex items-center space-x-2">
-                  <span class="text-xs px-2 py-1 rounded-full bg-<%= notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue' %>-100 text-<%= notice.priority === 'high' ? 'red' : notice.priority === 'medium' ? 'yellow' : 'blue' %>-800">
+                  <span class="text-xs px-2 py-1 rounded-full <%= notice.priority === 'high' ? 'bg-red-100 text-red-800' : notice.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800' %>">
                     <%= notice.priority.toUpperCase() %>
                   </span>
                   <button class="delete-notice-btn text-red-500 hover:text-red-700 transition" data-id="<%= notice._id %>">
@@ -239,10 +317,10 @@
           <i class="fas fa-broadcast-tower text-red-500"></i>
           <span>Live Streaming</span>
         </h2>
-        <div id="liveIndicator" class="flex items-center space-x-2 <%= tutor.isLive ? 'text-red-500' : 'text-gray-500' %>">
-          <i class="fas fa-circle <%= tutor.isLive ? 'live-pulse' : '' %>"></i>
+        <div id="liveIndicator" class="flex items-center space-x-2 <%= tutor && tutor.isLive ? 'text-red-500' : 'text-gray-500' %>">
+          <i class="fas fa-circle <%= tutor && tutor.isLive ? 'live-pulse' : '' %>"></i>
           <span class="text-sm font-semibold">
-            <%= tutor.isLive ? 'LIVE NOW' : 'OFFLINE' %>
+            <%= tutor && tutor.isLive ? 'LIVE NOW' : 'OFFLINE' %>
           </span>
         </div>
       </div>
@@ -250,7 +328,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Live Controls -->
         <div class="space-y-6">
-          <% if (tutor.isLive) { %>
+          <% if (tutor && tutor.isLive) { %>
             <!-- Currently Live View -->
             <div class="bg-green-50 border border-green-200 rounded-xl p-6">
               <div class="flex items-center space-x-3 mb-4">
@@ -266,7 +344,9 @@
               <div class="bg-white rounded-lg p-4 border border-green-100">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-sm text-gray-600">Current Viewers:</span>
-                  <span class="text-lg font-bold text-green-600" id="viewerCountDisplay"><%= viewerCount || 0 %></span>
+                  <span class="text-lg font-bold text-green-600" id="viewerCountDisplay">
+                    <%= tutor && tutor.viewerCount ? tutor.viewerCount : 0 %>
+                  </span>
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-600">Session Duration:</span>
@@ -275,10 +355,12 @@
               </div>
 
               <div class="flex space-x-3 mt-4">
-                <a href="/tutor-live/<%= tutor._id %>" 
-                   class="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition text-center font-semibold">
-                  <i class="fas fa-tv mr-2"></i>Go to Studio
-                </a>
+                <% if (tutor && tutor._id) { %>
+                  <a href="/tutor-live/<%= tutor._id %>" 
+                     class="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition text-center font-semibold">
+                    <i class="fas fa-tv mr-2"></i>Go to Studio
+                  </a>
+                <% } %>
                 <button id="stopLiveBtn" 
                         class="flex-1 bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition font-semibold">
                   <i class="fas fa-stop mr-2"></i>End Live
@@ -340,7 +422,7 @@
           <!-- Preview -->
           <div class="bg-gray-900 rounded-xl overflow-hidden">
             <div class="aspect-w-16 aspect-h-9 bg-black flex items-center justify-center">
-              <% if (tutor.isLive) { %>
+              <% if (tutor && tutor.isLive) { %>
                 <div class="text-center text-white p-6">
                   <i class="fas fa-broadcast-tower text-red-500 text-4xl mb-3"></i>
                   <p class="font-semibold">Live Stream Active</p>
@@ -421,7 +503,7 @@
   <!-- Socket and Live Streaming Script -->
   <script>
     const socket = io();
-    const tutorId = '<%= tutor._id %>';
+    const tutorId = '<%= tutor ? tutor._id : "" %>';
     let sessionStartTime = null;
     let sessionTimer = null;
 
@@ -636,7 +718,7 @@
     }
 
     // Start session timer if live
-   
+    // ... existing session timer code ...
   </script>
 </body>
 </html>
