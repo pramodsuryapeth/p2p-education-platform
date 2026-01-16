@@ -683,6 +683,108 @@ router.post('/update-student', isLogged, isStudent, upload.single('file'), async
   }
 
 });
+router.get('/update', isLogged, isTutor, async (req, res) => {
+  try {
+    const tutor = await Newtutor.findById(req.user.id);
+    
+    if (!tutor) {
+      return res.status(404).send('Tutor not found');
+    }
+    
+    res.render('tutorprofile', { 
+      tutor,
+      successMessage: req.flash('success'),
+      errorMessage: req.flash('error')
+    });
+    
+  } catch (err) {
+    console.error('❌ Error fetching tutor for update:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+// POST route to handle profile update
+router.post('/update', isLogged, isTutor, async (req, res) => {
+  try {
+    const { name, phone, skill, currentImagePublicId } = req.body;
+    const file = req.file;
+    
+    // Validate required fields
+    if (!name || !phone || !skill) {
+      req.flash('error', 'Name, phone, and skill are required');
+      return res.redirect('/update');
+    }
+    
+    const updateData = {
+      name,
+      phone,
+      skills: skill
+    };
+    
+    // Handle image upload if a new file is provided
+    if (file) {
+      // Delete old image from Cloudinary if exists
+      if (currentImagePublicId) {
+        try {
+          await cloudinary.uploader.destroy(currentImagePublicId);
+          console.log('✅ Old image deleted from Cloudinary');
+        } catch (cloudErr) {
+          console.log('⚠️ Could not delete old image from Cloudinary:', cloudErr.message);
+        }
+      }
+      
+      // Upload new image to Cloudinary
+      const uploadOptions = {
+        folder: 'tutor-profiles',
+        transformation: [
+          { width: 400, height: 400, crop: 'fill', gravity: 'face' }
+        ]
+      };
+      
+      try {
+        const uploadResult = await cloudinary.uploader.upload(file.path, uploadOptions);
+        
+        // Store Cloudinary data
+        updateData.image = {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+          format: uploadResult.format,
+          width: uploadResult.width,
+          height: uploadResult.height,
+          resourceType: uploadResult.resource_type,
+          createdAt: uploadResult.created_at
+        };
+        
+        console.log('✅ New image uploaded to Cloudinary:', uploadResult.secure_url);
+        
+      } catch (uploadErr) {
+        console.error('❌ Cloudinary upload error:', uploadErr);
+        req.flash('error', 'Failed to upload image. Please try again.');
+        return res.redirect('/update');
+      }
+    }
+    
+    // Update tutor in database
+    const updatedTutor = await Newtutor.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedTutor) {
+      req.flash('error', 'Failed to update profile');
+      return res.redirect('/update');
+    }
+    
+    req.flash('success', 'Profile updated successfully!');
+    res.redirect('/update');
+    
+  } catch (err) {
+    console.error('❌ Error updating tutor profile:', err);
+    req.flash('error', 'Server error occurred');
+    res.redirect('/update');
+  }
+});
 
 module.exports = router;
 
