@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const tutorSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  image: { type: String, required: true },
+  image: { type: mongoose.Schema.Types.Mixed, required: true },
   name: { type: String, required: true },
   phone: { type: Number, required: true },
   branch: { type: String, required: true },

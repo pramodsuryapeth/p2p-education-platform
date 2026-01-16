@@ -12,6 +12,17 @@ const path = require('path');
 const { uploadImageToCloudinary } = require('../config/cloudinary');
 const { isLogged, isTutor, isStudent } = require('../middleware/authMiddleware');
 
+
+// ===== CLOUDINARY IMPORT - ADD THIS =====
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 // ===== Multer File Upload Config =====
 const storage = multer.memoryStorage();
 const upload = multer({ 
@@ -691,8 +702,23 @@ router.get('/update', isLogged, isTutor, async (req, res) => {
       return res.status(404).send('Tutor not found');
     }
     
+    // Check if tutor has image and extract URL properly
+    let imageData = {};
+    if (tutor.image) {
+      // Handle both Cloudinary object and string URL
+      if (typeof tutor.image === 'object' && tutor.image.url) {
+        imageData.url = tutor.image.url;
+        imageData.publicId = tutor.image.publicId || tutor.image.public_id;
+      } else if (typeof tutor.image === 'string') {
+        imageData.url = tutor.image;
+      }
+    }
+    
     res.render('tutorprofile', { 
-      tutor,
+      tutor: {
+        ...tutor.toObject(),
+        image: imageData
+      },
       successMessage: req.flash('success'),
       errorMessage: req.flash('error')
     });
@@ -703,11 +729,14 @@ router.get('/update', isLogged, isTutor, async (req, res) => {
   }
 });
 
-// POST route to handle profile update
-router.post('/update', isLogged, isTutor, async (req, res) => {
+// POST route - Handle update form submission
+router.post('/update', isLogged, isTutor, upload.single('file'), async (req, res) => {
   try {
     const { name, phone, skill, currentImagePublicId } = req.body;
     const file = req.file;
+    
+    console.log('📦 Request body:', req.body);
+    console.log('📦 Request file:', file ? 'File received' : 'No file');
     
     // Validate required fields
     if (!name || !phone || !skill) {
@@ -723,8 +752,12 @@ router.post('/update', isLogged, isTutor, async (req, res) => {
     
     // Handle image upload if a new file is provided
     if (file) {
+      console.log('📸 Processing image upload...');
+      console.log('📸 File buffer size:', file.buffer.length);
+      console.log('📸 File mimetype:', file.mimetype);
+      
       // Delete old image from Cloudinary if exists
-      if (currentImagePublicId) {
+      if (currentImagePublicId && currentImagePublicId !== 'undefined') {
         try {
           await cloudinary.uploader.destroy(currentImagePublicId);
           console.log('✅ Old image deleted from Cloudinary');
@@ -733,7 +766,10 @@ router.post('/update', isLogged, isTutor, async (req, res) => {
         }
       }
       
-      // Upload new image to Cloudinary
+      // Convert buffer to base64 for Cloudinary
+      const base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      
+      // Upload to Cloudinary
       const uploadOptions = {
         folder: 'tutor-profiles',
         transformation: [
@@ -742,7 +778,9 @@ router.post('/update', isLogged, isTutor, async (req, res) => {
       };
       
       try {
-        const uploadResult = await cloudinary.uploader.upload(file.path, uploadOptions);
+        console.log('☁️ Uploading to Cloudinary...');
+        const uploadResult = await cloudinary.uploader.upload(base64Image, uploadOptions);
+        console.log('✅ Cloudinary upload successful:', uploadResult.secure_url);
         
         // Store Cloudinary data
         updateData.image = {
@@ -750,12 +788,8 @@ router.post('/update', isLogged, isTutor, async (req, res) => {
           publicId: uploadResult.public_id,
           format: uploadResult.format,
           width: uploadResult.width,
-          height: uploadResult.height,
-          resourceType: uploadResult.resource_type,
-          createdAt: uploadResult.created_at
+          height: uploadResult.height
         };
-        
-        console.log('✅ New image uploaded to Cloudinary:', uploadResult.secure_url);
         
       } catch (uploadErr) {
         console.error('❌ Cloudinary upload error:', uploadErr);
@@ -765,6 +799,7 @@ router.post('/update', isLogged, isTutor, async (req, res) => {
     }
     
     // Update tutor in database
+    console.log('💾 Updating database with:', updateData);
     const updatedTutor = await Newtutor.findByIdAndUpdate(
       req.user.id,
       { $set: updateData },
@@ -776,16 +811,16 @@ router.post('/update', isLogged, isTutor, async (req, res) => {
       return res.redirect('/update');
     }
     
+    console.log('✅ Profile updated successfully');
     req.flash('success', 'Profile updated successfully!');
     res.redirect('/update');
     
   } catch (err) {
     console.error('❌ Error updating tutor profile:', err);
-    req.flash('error', 'Server error occurred');
+    req.flash('error', 'Server error occurred: ' + err.message);
     res.redirect('/update');
   }
 });
-
 module.exports = router;
 
    
