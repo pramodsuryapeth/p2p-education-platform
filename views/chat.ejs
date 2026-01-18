@@ -7,87 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    /* Custom scrollbar */
-    .chat-scrollbar::-webkit-scrollbar {
-      width: 4px;
-    }
-    .chat-scrollbar::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-    .chat-scrollbar::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 10px;
-    }
-    .chat-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
-    
-    /* Message animations */
-    @keyframes slideInRight {
-      from {
-        opacity: 0;
-        transform: translateX(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-    
-    @keyframes slideInLeft {
-      from {
-        opacity: 0;
-        transform: translateX(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-    
-    .message-sender {
-      animation: slideInRight 0.3s ease-out;
-    }
-    
-    .message-receiver {
-      animation: slideInLeft 0.3s ease-out;
-    }
-    
-    /* Typing animation */
-    .typing-dots span {
-      animation: typing 1.4s infinite;
-      display: inline-block;
-    }
-    .typing-dots span:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-    .typing-dots span:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-    @keyframes typing {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-4px); }
-    }
-  </style>
-  <script>
-    const SENDER_ID = "<%= senderId %>";
-    const RECEIVER_ID = "<%= receiverId %>";
-    const ROOM_ID = "<%= roomId %>";
-    const SENDER_MODEL = "<%= senderModel %>";
-    const RECEIVER_MODEL = "<%= receiverModel %>";
-    const SENDER_NAME = "<%= sender.name || sender.username || 'You' %>";
-    const RECEIVER_NAME = "<%= receiver.name || receiver.username || 'User' %>";
-    
-    // Store all messages in memory to prevent duplication
-    let allMessages = [];
-    let messageIds = new Set();
-  </script>
 </head>
 <body class="bg-gray-100">
-
-  <!-- Mobile Header -->
-  <div class="md:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+  
+  <!-- Header -->
+  <div class="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
     <div class="flex items-center justify-between px-4 py-3">
       <div class="flex items-center space-x-3">
         <a href="/messages" class="text-blue-600">
@@ -114,102 +38,70 @@
           <img src="<%= avatarUrl %>" alt="<%= avatarAlt %>" class="w-full h-full object-cover">
         </div>
         <div>
-          <h2 class="font-semibold text-gray-800"><%= receiver.name || receiver.username || 'User' %></h2>
+          <h2 class="font-semibold text-gray-800 text-sm"><%= receiver.name || receiver.username || 'User' %></h2>
           <p id="onlineStatus" class="text-xs text-gray-500">Offline</p>
         </div>
       </div>
       <div class="flex items-center space-x-4">
-        <i class="fas fa-phone-alt text-blue-600"></i>
-        <i class="fas fa-video text-blue-600"></i>
-      </div>
-    </div>
-  </div>
-
-  <!-- Desktop Header (Hidden on mobile) -->
-  <div class="hidden md:flex fixed top-0 left-0 right-0 bg-white shadow-md z-50 px-6 py-4">
-    <div class="flex items-center justify-between w-full max-w-4xl mx-auto">
-      <div class="flex items-center space-x-4">
-        <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-300">
-          <img src="<%= avatarUrl %>" alt="<%= avatarAlt %>" class="w-full h-full object-cover">
-        </div>
-        <div>
-          <h2 class="font-semibold text-lg text-gray-800"><%= receiver.name || receiver.username || 'User' %></h2>
-          <p id="onlineStatusDesktop" class="text-sm text-gray-500">Offline</p>
-        </div>
-      </div>
-      <div class="flex items-center space-x-6">
-        <button class="p-2 hover:bg-gray-100 rounded-full">
-          <i class="fas fa-phone-alt text-blue-600 text-lg"></i>
-        </button>
-        <button class="p-2 hover:bg-gray-100 rounded-full">
-          <i class="fas fa-video text-blue-600 text-lg"></i>
-        </button>
-        <button class="p-2 hover:bg-gray-100 rounded-full">
-          <i class="fas fa-ellipsis-v text-gray-600 text-lg"></i>
-        </button>
+        <i class="fas fa-phone-alt text-blue-600 text-sm"></i>
+        <i class="fas fa-video text-blue-600 text-sm"></i>
       </div>
     </div>
   </div>
 
   <!-- Chat Container -->
-  <div class="pt-16 md:pt-20 pb-24 md:pb-20 px-2 md:px-4 max-w-4xl mx-auto">
-    
+  <div class="pt-16 pb-20 px-2">
     <!-- Chat Messages Area -->
-    <div id="chatBox" class="chat-scrollbar space-y-2 md:space-y-3 min-h-[calc(100vh-8rem)] overflow-y-auto">
+    <div id="chatBox" class="space-y-2 min-h-[calc(100vh-8rem)] overflow-y-auto">
       
-      <!-- Initial load messages -->
-      <% messages.forEach(msg => { 
-        const isSender = msg.senderId.toString() === senderId.toString();
-        const msgId = msg._id ? msg._id.toString() : Date.now();
-        
-        // Add to memory
-        messageIds.add(msgId);
-        allMessages.push({...msg, _id: msgId});
-      %>
-        <div class="<%= isSender ? 'message-sender' : 'message-receiver' %>">
-          <div class="flex <%= isSender ? 'justify-end' : 'justify-start' %> px-2 md:px-4">
-            <div class="max-w-[85%] md:max-w-[75%]">
-              <!-- Message Bubble -->
-              <div class="px-4 py-3 rounded-2xl break-words
-                          <%= isSender 
-                              ? 'bg-blue-500 text-white rounded-br-none' 
-                              : 'bg-white text-gray-800 rounded-bl-none shadow-sm' %>">
-                <p class="text-sm md:text-base leading-relaxed whitespace-pre-wrap"><%= msg.message %></p>
-              </div>
-              
-              <!-- Message Meta -->
-              <div class="flex items-center space-x-2 mt-1 px-1 
-                          <%= isSender ? 'justify-end' : 'justify-start' %>">
-                <span class="text-xs text-gray-500">
-                  <%= new Date(msg.timestamp || msg.createdAt).toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: true 
-                  }) %>
+      <!-- Date Separator -->
+      <div class="text-center py-2">
+        <span class="text-xs text-gray-500 bg-gray-200 px-3 py-1 rounded-full">Today</span>
+      </div>
+
+      <!-- Messages -->
+      <% messages.forEach(msg => { %>
+        <div class="flex <%= msg.senderId.toString() === senderId.toString() ? 'justify-end' : 'justify-start' %> px-2">
+          <div class="max-w-[85%]">
+            <!-- Message Bubble -->
+            <div class="px-3 py-2 rounded-2xl break-words
+                        <%= msg.senderId.toString() === senderId.toString() 
+                            ? 'bg-blue-500 text-white rounded-br-none' 
+                            : 'bg-white text-gray-800 rounded-bl-none shadow-sm' %>">
+              <p class="text-sm leading-relaxed whitespace-pre-wrap"><%= msg.message %></p>
+            </div>
+            
+            <!-- Message Meta -->
+            <div class="flex items-center space-x-1 mt-1 px-1 
+                        <%= msg.senderId.toString() === senderId.toString() ? 'justify-end' : 'justify-start' %>">
+              <span class="text-xs text-gray-500">
+                <%= new Date(msg.timestamp || msg.createdAt).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }) %>
+              </span>
+              <% if (msg.senderId.toString() === senderId.toString()) { %>
+                <span class="text-xs <%= msg.seen ? 'text-blue-400' : 'text-gray-400' %> ml-1">
+                  <i class="fas fa-check<%= msg.seen ? '-double' : '' %> text-xs"></i>
                 </span>
-                <% if (isSender) { %>
-                  <span class="text-xs <%= msg.seen ? 'text-blue-400' : 'text-gray-400' %>">
-                    <i class="fas fa-check<%= msg.seen ? '-double' : '' %> text-xs"></i>
-                  </span>
-                <% } %>
-              </div>
+              <% } %>
             </div>
           </div>
         </div>
       <% }) %>
       
       <!-- Typing Indicator -->
-      <div id="typingIndicator" class="hidden px-2 md:px-4">
+      <div id="typingIndicator" class="hidden px-2">
         <div class="flex justify-start">
-          <div class="max-w-[85%] md:max-w-[75%]">
-            <div class="bg-white text-gray-800 rounded-2xl rounded-bl-none shadow-sm px-4 py-3">
+          <div class="max-w-[85%]">
+            <div class="bg-white text-gray-800 rounded-2xl rounded-bl-none shadow-sm px-3 py-2">
               <div class="flex items-center space-x-2">
-                <div class="typing-dots">
-                  <span class="w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
-                  <span class="w-2 h-2 bg-gray-400 rounded-full inline-block ml-1"></span>
-                  <span class="w-2 h-2 bg-gray-400 rounded-full inline-block ml-1"></span>
+                <div class="flex space-x-1">
+                  <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                  <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
                 </div>
-                <span class="text-sm text-gray-500">typing...</span>
+                <span class="text-xs text-gray-500">typing...</span>
               </div>
             </div>
           </div>
@@ -218,191 +110,138 @@
     </div>
   </div>
 
-  <!-- Input Area - Mobile (Fixed at bottom) -->
-  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-50">
-    <form id="chatFormMobile" class="flex items-center space-x-3">
+  <!-- Input Area -->
+  <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-50">
+    <!-- Quick Replies -->
+    <div id="quickReplies" class="flex space-x-2 mb-2 overflow-x-auto">
+      <button class="quick-reply-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs hover:bg-gray-200 transition whitespace-nowrap">
+        Hello!
+      </button>
+      <button class="quick-reply-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs hover:bg-gray-200 transition whitespace-nowrap">
+        How are you?
+      </button>
+      <button class="quick-reply-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs hover:bg-gray-200 transition whitespace-nowrap">
+        Thanks!
+      </button>
+    </div>
+    
+    <form id="chatForm" class="flex items-center space-x-2">
       <!-- Emoji Button -->
       <button type="button" class="p-2 text-gray-500 hover:text-blue-600">
-        <i class="fas fa-smile text-xl"></i>
+        <i class="fas fa-smile"></i>
       </button>
       
       <!-- Message Input -->
       <div class="flex-1 relative">
         <textarea 
-          id="messageInputMobile" 
+          id="messageInput" 
           placeholder="Type a message..." 
           rows="1"
-          class="w-full border border-gray-300 rounded-full px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 resize-none bg-gray-50"
+          class="w-full border border-gray-300 rounded-full px-3 py-2 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 resize-none bg-gray-50 text-sm"
           autocomplete="off"
           required
         ></textarea>
         
         <!-- Attachment Button -->
-        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600">
-          <i class="fas fa-paperclip text-lg"></i>
+        <button type="button" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600">
+          <i class="fas fa-paperclip text-sm"></i>
         </button>
       </div>
       
       <!-- Send Button -->
-      <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition">
+      <button type="submit" class="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition flex-shrink-0">
         <i class="fas fa-paper-plane"></i>
       </button>
     </form>
   </div>
 
-  <!-- Input Area - Desktop -->
-  <div class="hidden md:block fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 px-6">
-    <div class="max-w-4xl mx-auto">
-      <form id="chatFormDesktop" class="flex items-center space-x-4">
-        <!-- Emoji & Attachment Buttons -->
-        <div class="flex space-x-2">
-          <button type="button" class="p-3 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-full">
-            <i class="fas fa-smile text-xl"></i>
-          </button>
-          <button type="button" class="p-3 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-full">
-            <i class="fas fa-paperclip text-xl"></i>
-          </button>
-        </div>
-        
-        <!-- Message Input -->
-        <div class="flex-1 relative">
-          <textarea 
-            id="messageInputDesktop" 
-            placeholder="Type a message..." 
-            rows="1"
-            class="w-full border border-gray-300 rounded-full px-5 py-4 pr-16 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 resize-none bg-gray-50 text-base"
-            autocomplete="off"
-            required
-          ></textarea>
-          
-          <!-- Voice Message Button -->
-          <button type="button" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600">
-            <i class="fas fa-microphone text-lg"></i>
-          </button>
-        </div>
-        
-        <!-- Send Button -->
-        <button type="submit" class="bg-blue-600 text-white p-4 rounded-full hover:bg-blue-700 transition shadow-lg">
-          <i class="fas fa-paper-plane text-lg"></i>
-        </button>
-      </form>
-    </div>
-  </div>
-
   <script>
-    // Socket connection
+    const SENDER_ID = "<%= senderId %>";
+    const RECEIVER_ID = "<%= receiverId %>";
+    const ROOM_ID = "<%= roomId %>";
+    const SENDER_MODEL = "<%= senderModel %>";
+    const RECEIVER_MODEL = "<%= receiverModel %>";
+    const SENDER_NAME = "<%= sender.name || sender.username || 'You' %>";
+    const RECEIVER_NAME = "<%= receiver.name || receiver.username || 'User' %>";
+
     const socket = io();
-    
-    // Get DOM elements
     const chatBox = document.getElementById("chatBox");
+    const chatForm = document.getElementById("chatForm");
+    const messageInput = document.getElementById("messageInput");
     const typingIndicator = document.getElementById("typingIndicator");
-    
-    // Mobile elements
-    const chatFormMobile = document.getElementById("chatFormMobile");
-    const messageInputMobile = document.getElementById("messageInputMobile");
-    
-    // Desktop elements
-    const chatFormDesktop = document.getElementById("chatFormDesktop");
-    const messageInputDesktop = document.getElementById("messageInputDesktop");
-    
-    // Active input (changes based on device)
-    let activeForm, activeInput;
-    
-    // Determine active input based on device
-    if (window.innerWidth < 768) {
-      activeForm = chatFormMobile;
-      activeInput = messageInputMobile;
-    } else {
-      activeForm = chatFormDesktop;
-      activeInput = messageInputDesktop;
-    }
+    const quickReplies = document.getElementById("quickReplies");
 
     // Join rooms
     socket.emit("joinRoom", ROOM_ID);
     socket.emit("joinUser", SENDER_ID);
 
     // Auto-resize textarea
-    function autoResize(textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-    }
-
-    // Initialize message tracking
-    function initializeMessages() {
-      console.log(`Initialized with ${allMessages.length} messages`);
-    }
-
-    // Add message to chat (prevent duplicates)
-    function addMessageToChat(data, isSender) {
-      const msgId = data._id ? data._id.toString() : `temp_${Date.now()}`;
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 80) + 'px';
       
-      // Check if message already exists
-      if (messageIds.has(msgId)) {
-        console.log('Duplicate message detected, skipping:', msgId);
-        return false;
+      if (this.value.trim() === '') {
+        quickReplies.classList.remove('hidden');
+      } else {
+        quickReplies.classList.add('hidden');
       }
-      
-      // Add to memory
-      messageIds.add(msgId);
-      allMessages.push({...data, _id: msgId});
-      
-      // Create message element
+    });
+
+    // Quick reply buttons
+    document.querySelectorAll('.quick-reply-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        messageInput.value = this.textContent;
+        messageInput.focus();
+        quickReplies.classList.add('hidden');
+        // Auto-resize after setting value
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 80) + 'px';
+      });
+    });
+
+    // Append message
+    function appendMessage(data, isSender) {
       const messageDiv = document.createElement('div');
-      messageDiv.className = isSender ? 'message-sender' : 'message-receiver';
+      messageDiv.className = `flex ${isSender ? "justify-end" : "justify-start"} px-2`;
       
       const time = new Date(data.timestamp || new Date()).toLocaleTimeString([], { 
         hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
+        minute: '2-digit' 
       });
       
       const seenIcon = isSender ? 
-        `<span class="text-xs ${data.seen ? 'text-blue-400' : 'text-gray-400'} ml-2">
+        `<span class="text-xs ${data.seen ? 'text-blue-400' : 'text-gray-400'} ml-1">
           <i class="fas fa-check${data.seen ? '-double' : ''} text-xs"></i>
         </span>` : '';
       
       messageDiv.innerHTML = `
-        <div class="flex ${isSender ? "justify-end" : "justify-start"} px-2 md:px-4">
-          <div class="max-w-[85%] md:max-w-[75%]">
-            <div class="px-4 py-3 rounded-2xl break-words
-                        ${isSender 
-                          ? 'bg-blue-500 text-white rounded-br-none' 
-                          : 'bg-white text-gray-800 rounded-bl-none shadow-sm'}">
-              <p class="text-sm md:text-base leading-relaxed whitespace-pre-wrap">${data.message}</p>
-            </div>
-            <div class="flex items-center space-x-2 mt-1 px-1 ${isSender ? 'justify-end' : 'justify-start'}">
-              <span class="text-xs text-gray-500">${time}</span>
-              ${seenIcon}
-            </div>
+        <div class="max-w-[85%]">
+          <div class="px-3 py-2 rounded-2xl break-words shadow-sm
+                      ${isSender 
+                        ? 'bg-blue-500 text-white rounded-br-none' 
+                        : 'bg-white text-gray-800 rounded-bl-none'}">
+            <p class="text-sm leading-relaxed whitespace-pre-wrap">${data.message}</p>
+          </div>
+          <div class="flex items-center space-x-1 mt-1 px-1 ${isSender ? 'justify-end' : 'justify-start'}">
+            <span class="text-xs text-gray-500">${time}</span>
+            ${seenIcon}
           </div>
         </div>
       `;
       
-      // Insert before typing indicator if it exists
-      if (typingIndicator.style.display !== 'none') {
-        chatBox.insertBefore(messageDiv, typingIndicator);
-      } else {
-        chatBox.appendChild(messageDiv);
-      }
-      
-      // Scroll to bottom
+      chatBox.appendChild(messageDiv);
       setTimeout(() => {
         chatBox.scrollTop = chatBox.scrollHeight;
       }, 50);
-      
-      return true;
     }
 
     // Receive new message
     socket.on("chatMessage", data => {
-      console.log('Received message:', data);
-      const isSender = data.senderId === SENDER_ID;
-      const added = addMessageToChat(data, isSender);
+      appendMessage(data, data.senderId === SENDER_ID);
       
-      if (added && data.receiverId === SENDER_ID) {
-        // Mark as seen
+      if (data.receiverId === SENDER_ID) {
         socket.emit('markAsSeen', {
-          messageId: data._id || data.id,
+          messageId: data._id,
           roomId: ROOM_ID
         });
       }
@@ -410,19 +249,38 @@
 
     // Message seen confirmation
     socket.on('messageSeen', (data) => {
-      console.log('Message seen:', data);
-      // Update seen status in UI
       const checkmarks = chatBox.querySelectorAll('.fa-check');
       checkmarks.forEach(checkmark => {
         checkmark.className = 'fas fa-check-double text-blue-400 text-xs';
       });
     });
 
+    // Send message
+    chatForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      socket.emit("chatMessage", {
+        roomId: ROOM_ID,
+        senderId: SENDER_ID,
+        receiverId: RECEIVER_ID,
+        message,
+        senderModel: SENDER_MODEL,
+        receiverModel: RECEIVER_MODEL,
+        senderName: SENDER_NAME
+      });
+
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      quickReplies.classList.remove('hidden');
+    });
+
     // Typing indicator
     let typingTimeout;
     let isTyping = false;
 
-    function handleTyping(inputElement) {
+    messageInput.addEventListener("input", () => {
       if (!isTyping) {
         isTyping = true;
         socket.emit("typing", { 
@@ -443,9 +301,8 @@
           typing: false
         });
       }, 1000);
-    }
+    });
 
-    // Receive typing indicator
     socket.on("typing", (data) => {
       if (data.receiverId === SENDER_ID && data.senderId === RECEIVER_ID) {
         if (data.typing) {
@@ -453,125 +310,36 @@
         } else {
           typingIndicator.classList.add("hidden");
         }
-        // Scroll to show typing indicator
         chatBox.scrollTop = chatBox.scrollHeight;
       }
-    });
-
-    // Send message function
-    function sendMessage(message) {
-      if (!message.trim()) return;
-
-      const messageData = {
-        roomId: ROOM_ID,
-        senderId: SENDER_ID,
-        receiverId: RECEIVER_ID,
-        message: message.trim(),
-        senderModel: SENDER_MODEL,
-        receiverModel: RECEIVER_MODEL,
-        senderName: SENDER_NAME
-      };
-
-      // Add to UI immediately (optimistic update)
-      addMessageToChat({
-        ...messageData,
-        _id: `temp_${Date.now()}`,
-        timestamp: new Date(),
-        seen: false
-      }, true);
-
-      // Send to server
-      socket.emit("chatMessage", messageData);
-
-      // Clear input
-      activeInput.value = '';
-      autoResize(activeInput);
-    }
-
-    // Form submission
-    activeForm.addEventListener("submit", e => {
-      e.preventDefault();
-      sendMessage(activeInput.value);
-    });
-
-    // Input event listeners
-    [messageInputMobile, messageInputDesktop].forEach(input => {
-      input.addEventListener("input", function() {
-        autoResize(this);
-        handleTyping(this);
-      });
-      
-      // Enter key to send (Shift+Enter for new line)
-      input.addEventListener("keydown", function(e) {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage(this.value);
-        }
-      });
     });
 
     // Online status
     socket.on('userOnline', (userId) => {
       if (userId === RECEIVER_ID) {
         document.getElementById('onlineStatus').textContent = 'Online';
-        document.getElementById('onlineStatusDesktop').textContent = 'Online';
       }
     });
 
     socket.on('userOffline', (userId) => {
       if (userId === RECEIVER_ID) {
         document.getElementById('onlineStatus').textContent = 'Offline';
-        document.getElementById('onlineStatusDesktop').textContent = 'Offline';
       }
     });
 
-    // Handle window resize
-    window.addEventListener('resize', function() {
-      if (window.innerWidth < 768) {
-        activeForm = chatFormMobile;
-        activeInput = messageInputMobile;
-      } else {
-        activeForm = chatFormDesktop;
-        activeInput = messageInputDesktop;
+    // Keyboard shortcuts
+    messageInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        chatForm.dispatchEvent(new Event('submit'));
       }
     });
 
     // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-      initializeMessages();
-      activeInput.focus();
-      
-      // Scroll to bottom
-      setTimeout(() => {
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }, 100);
-    });
-
-    // Handle page visibility (for seen status)
-    document.addEventListener('visibilitychange', function() {
-      if (!document.hidden) {
-        // Mark all messages as seen when page becomes visible
-        allMessages.forEach(msg => {
-          if (msg.senderId !== SENDER_ID && !msg.seen) {
-            socket.emit('markAsSeen', {
-              messageId: msg._id,
-              roomId: ROOM_ID
-            });
-          }
-        });
-      }
-    });
-
-    // Reconnect handling
-    socket.on('connect', () => {
-      console.log('Socket connected');
-      socket.emit("joinRoom", ROOM_ID);
-      socket.emit("joinUser", SENDER_ID);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-    });
+    messageInput.focus();
+    setTimeout(() => {
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }, 100);
   </script>
 </body>
 </html>
