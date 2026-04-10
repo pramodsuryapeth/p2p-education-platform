@@ -15,7 +15,6 @@
       background: radial-gradient(circle at 15% 30%, #0B1120, #03050B);
       min-height: 100vh;
     }
-    /* animated grain overlay */
     .grain {
       position: fixed;
       top: 0;
@@ -28,7 +27,6 @@
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-repeat: repeat;
     }
-    /* glassmorphic core */
     .glass-panel {
       background: rgba(12, 20, 30, 0.55);
       backdrop-filter: blur(16px);
@@ -46,7 +44,6 @@
       box-shadow: 0 8px 25px -5px rgba(59,130,246,0.3);
       transform: translateY(-2px);
     }
-    /* live glow animation */
     .live-glow-ring {
       box-shadow: 0 0 0 rgba(239,68,68,0.6);
       animation: ringPulse 1.8s infinite;
@@ -71,7 +68,6 @@
     .mirror-video {
       transform: scaleX(-1);
     }
-    /* waveform animation */
     .waveform-animate span {
       display: inline-block;
       width: 4px;
@@ -83,28 +79,9 @@
       0% { height: 6px; }
       100% { height: 24px; }
     }
-    /* floating status dot */
-    .pulse-dot {
-      position: relative;
-    }
-    .pulse-dot::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background-color: currentColor;
-      border-radius: 50%;
-      animation: ripple 1.4s infinite;
-    }
-    @keyframes ripple {
-      0% { transform: scale(1); opacity: 0.8; }
-      100% { transform: scale(2.5); opacity: 0; }
-    }
-    /* custom range / level meter */
     .level-meter {
       background: linear-gradient(90deg, #10b981, #facc15, #ef4444);
     }
-    /* video container enhancements - elegant black treatment */
     .video-container {
       position: relative;
       background: radial-gradient(circle at center, #0a0f1a, #000000);
@@ -118,7 +95,6 @@
       object-fit: cover;
       transition: opacity 0.3s ease;
     }
-    /* elegant vignette overlay for cinematic look */
     .vignette-overlay {
       position: absolute;
       inset: 0;
@@ -127,7 +103,6 @@
       z-index: 2;
       border-radius: 1rem;
     }
-    /* placeholder when camera is off */
     .camera-placeholder {
       position: absolute;
       inset: 0;
@@ -151,7 +126,6 @@
       0% { opacity: 0.5; transform: scale(0.95);}
       100% { opacity: 1; transform: scale(1);}
     }
-    /* scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
     ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
@@ -160,7 +134,6 @@
 <body>
   <div class="grain"></div>
 
-  <!-- immersive header -->
   <header class="relative z-20 border-b border-white/10 bg-black/30 backdrop-blur-xl sticky top-0">
     <div class="container mx-auto px-6 py-4 flex justify-between items-center flex-wrap gap-3">
       <a href="/dashboard" id="backButton" class="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-2xl transition-all duration-200 border border-white/10 group">
@@ -182,7 +155,6 @@
   </header>
 
   <main class="container mx-auto px-6 py-8 relative z-10">
-    <!-- hero area with live badge -->
     <div class="flex flex-wrap justify-between items-end mb-7">
       <div>
         <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-sky-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">Live Control Room</h1>
@@ -196,18 +168,11 @@
       </div>
     </div>
 
-    <!-- main grid: video + pro controls -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-7">
-      <!-- video wall - enhanced with placeholder and cinematic black styling -->
       <div class="xl:col-span-2 space-y-4">
         <div class="video-container group rounded-2xl shadow-2xl border border-white/20 bg-black aspect-video">
-          <!-- video element -->
           <video id="tutorVideo" autoplay muted playsinline class="w-full h-full object-cover mirror-video relative z-0"></video>
-          
-          <!-- cinematic vignette overlay for depth -->
           <div class="vignette-overlay"></div>
-          
-          <!-- elegant camera placeholder (visible when no stream) -->
           <div id="cameraPlaceholder" class="camera-placeholder">
             <div class="text-center space-y-4 pulse-ring">
               <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-blue-500/20 to-purple-500/20 flex items-center justify-center backdrop-blur-sm border border-white/20">
@@ -217,8 +182,6 @@
               <p class="text-white/40 text-xs">Start stream to begin broadcast</p>
             </div>
           </div>
-          
-          <!-- live overlay indicators (always on top) -->
           <div class="absolute top-5 left-5 flex gap-2 z-10">
             <div class="backdrop-blur-md bg-black/50 px-3 py-1.5 rounded-full text-xs font-mono flex items-center gap-1.5 border border-white/20">
               <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -234,7 +197,6 @@
           </div>
         </div>
         
-        <!-- live stats row -->
         <div class="glass-panel rounded-xl p-4 flex flex-wrap justify-between items-center">
           <div class="flex items-center gap-5">
             <div class="flex items-center gap-2"><span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span><span class="font-mono text-sm font-semibold" id="streamStatus">Offline</span></div>
@@ -247,9 +209,7 @@
         </div>
       </div>
 
-      <!-- right column: premium control suite -->
       <div class="space-y-6">
-        <!-- broadcast engine card -->
         <div class="glass-card rounded-2xl p-6">
           <div class="flex items-center gap-2 mb-5"><div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 text-lg">🎛️</span></div><h3 class="text-xl font-bold">Broadcast Core</h3></div>
           <div class="space-y-3.5">
@@ -273,7 +233,7 @@
           </div>
         </div>
 
-        <!-- professional audio suite with visualizer -->
+        <!-- FIXED AUDIO SUITE -->
         <div class="glass-card rounded-2xl p-6">
           <div class="flex items-center gap-2 mb-4"><div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"><span class="text-emerald-400 text-lg">🎙️</span></div><h3 class="text-xl font-bold">Audio Suite</h3></div>
           <div class="flex gap-3">
@@ -283,13 +243,12 @@
           <div class="mt-5">
             <div class="flex justify-between text-xs text-gray-300 mb-1.5"><span>Input level (RMS)</span><span id="audioLevelText" class="text-emerald-300 font-mono">0%</span></div>
             <div class="h-2.5 bg-gray-800 rounded-full overflow-hidden shadow-inner">
-              <div id="audioLevelBar" class="h-full level-meter rounded-full transition-all duration-75 w-0" style="background: linear-gradient(90deg, #10b981, #eab308, #ef4444);"></div>
+              <div id="audioLevelBar" class="h-full level-meter rounded-full transition-all duration-75 w-0"></div>
             </div>
-            <div class="flex justify-between text-[11px] text-gray-400 mt-2"><span>🔊 microphone state</span><span id="micStatusLabel" class="text-green-300">active</span></div>
+            <div class="flex justify-between text-[11px] text-gray-400 mt-2"><span>🔊 microphone state</span><span id="micStatusLabel" class="text-green-300">inactive</span></div>
           </div>
         </div>
 
-        <!-- live audience analytics -->
         <div class="glass-card rounded-2xl p-6">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center"><span class="text-cyan-400 text-lg">👥</span></div><h3 class="text-xl font-bold">Live Room</h3></div>
@@ -309,13 +268,12 @@
   </main>
 
   <script>
-    // ======================= FULL ORIGINAL FUNCTIONALITY + PLACEHOLDER LOGIC =======================
+    // ======================= FULL FUNCTIONALITY + FIXED AUDIO =======================
     const socket = io();
     const tutorId = "<%= tutor._id %>";
     const video = document.getElementById("tutorVideo");
     const cameraPlaceholder = document.getElementById("cameraPlaceholder");
     
-    // DOM elements
     const startLiveBtn = document.getElementById("startLiveBtn");
     const stopLiveBtn = document.getElementById("stopLiveBtn");
     const shareScreenBtn = document.getElementById("shareScreenBtn");
@@ -341,16 +299,13 @@
     let currentCamera = 'user';
     let audioContext = null;
     let analyser = null;
+    let animationFrameId = null;
     let isLive = false;
     let currentAudioMuted = false;
 
-    // Helper to show/hide camera placeholder elegantly
     function setCameraPlaceholder(visible) {
-      if (visible) {
-        cameraPlaceholder.classList.remove("hidden");
-      } else {
-        cameraPlaceholder.classList.add("hidden");
-      }
+      if (visible) cameraPlaceholder.classList.remove("hidden");
+      else cameraPlaceholder.classList.add("hidden");
     }
 
     function updateConnectionStatusUI(status, colorClass) {
@@ -377,6 +332,46 @@
     }
     function stopStreamTimer() { if (streamTimer) clearInterval(streamTimer); streamDurationSpan.textContent = "00:00:00"; }
 
+    // ---- FIXED AUDIO MONITORING (works even before going live) ----
+    function startAudioMonitoring(stream) {
+      // stop any existing monitoring
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (audioContext) audioContext.close().catch(e=>console.warn);
+      
+      if (!stream) return;
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack) {
+        console.warn("No audio track in stream");
+        return;
+      }
+      
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        
+        function updateMeter() {
+          if (!analyser || !audioContext) return;
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          let percent = Math.min(100, (sum / (dataArray.length * 200)) * 100);
+          if (audioLevelBar) audioLevelBar.style.width = percent + "%";
+          if (audioLevelText) audioLevelText.textContent = Math.floor(percent) + "%";
+          animationFrameId = requestAnimationFrame(updateMeter);
+        }
+        if (audioContext.state === 'suspended') audioContext.resume();
+        updateMeter();
+        micStatusLabel.textContent = currentAudioMuted ? "muted" : "active";
+      } catch (err) {
+        console.error("Audio monitoring error:", err);
+        micStatusLabel.textContent = "error";
+      }
+    }
+
     async function stopLiveStream() {
       if (!isLive && !localStream) return;
       socket.emit("tutor-stop", { tutorId });
@@ -393,9 +388,11 @@
       updateViewerCount(0);
       isLive = false;
       liveBadge.classList.add("hidden");
+      // stop audio meter
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (audioLevelBar) audioLevelBar.style.width = "0%";
       if (audioLevelText) audioLevelText.textContent = "0%";
-      // Show placeholder again since stream ended
+      micStatusLabel.textContent = "inactive";
       setCameraPlaceholder(true);
     }
 
@@ -407,44 +404,27 @@
       return pc;
     }
 
-    function startAudioMonitoring(stream) {
-      if (!stream) return;
-      if (audioContext) audioContext.close();
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioContext.createAnalyser();
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-      analyser.fftSize = 256;
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      function updateMeter() {
-        if (!analyser || !isLive) return;
-        analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-        let percent = Math.min(100, (sum / (dataArray.length * 200)) * 100);
-        if (audioLevelBar) audioLevelBar.style.width = percent + "%";
-        if (audioLevelText) audioLevelText.textContent = Math.floor(percent) + "%";
-        requestAnimationFrame(updateMeter);
-      }
-      if (audioContext.state === 'suspended') audioContext.resume();
-      updateMeter();
-    }
-
     async function getCameraAndMic() {
-      return await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true });
+      return await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: currentCamera, width: { ideal: 1280 }, height: { ideal: 720 } }, 
+        audio: true 
+      });
     }
 
+    // ---- START LIVE ----
     startLiveBtn.addEventListener("click", async () => {
       if (isLive) return;
       try {
         updateConnectionStatusUI("Connecting...", "bg-yellow-500");
         localStream = await getCameraAndMic();
         video.srcObject = localStream;
-        // Hide placeholder when video stream is active
         setCameraPlaceholder(false);
         if (mirrorToggle.checked) video.classList.add("mirror-video");
         else video.classList.remove("mirror-video");
+        
+        // start audio monitoring with the stream
         startAudioMonitoring(localStream);
+        
         socket.emit("tutor-start", { tutorId });
         startLiveBtn.classList.add("hidden");
         stopLiveBtn.classList.remove("hidden");
@@ -454,7 +434,11 @@
         startStreamTimer();
         isLive = true;
         liveBadge.classList.remove("hidden");
-        micStatusLabel.textContent = "unmuted";
+        currentAudioMuted = false;
+        muteAudioBtn.textContent = "🔇 Mute Mic";
+        // ensure audio track enabled
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) audioTrack.enabled = true;
       } catch(err) { 
         alert("Camera/Mic error: " + err.message); 
         updateConnectionStatusUI("Error", "bg-red-500");
@@ -509,31 +493,57 @@
       localStream.getTracks().forEach(t => t.stop());
       localStream = newStream;
       startAudioMonitoring(localStream);
-      // placeholder already hidden because stream is active
     });
 
     mirrorToggle.addEventListener("change", (e) => {
       if (video) e.target.checked ? video.classList.add("mirror-video") : video.classList.remove("mirror-video");
     });
 
+    // ---- FIXED MUTE/UNMUTE ----
     muteAudioBtn.addEventListener("click", () => {
       if (localStream) {
         const audioTrack = localStream.getAudioTracks()[0];
         if (audioTrack) {
           audioTrack.enabled = !audioTrack.enabled;
           currentAudioMuted = !audioTrack.enabled;
-          muteAudioBtn.textContent = currentAudioMuted ? "🎤 Unmute" : "🔇 Mute";
+          muteAudioBtn.textContent = currentAudioMuted ? "🎤 Unmute" : "🔇 Mute Mic";
           micStatusLabel.textContent = currentAudioMuted ? "muted" : "active";
+        } else {
+          alert("No audio track found. Please restart stream.");
         }
+      } else {
+        alert("Start live stream first to control microphone.");
       }
     });
+
+    // ---- FIXED TEST AUDIO (plays own mic back for 2 seconds) ----
     testAudioBtn.addEventListener("click", async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audio = new Audio(); audio.srcObject = stream; audio.play();
-      setTimeout(() => stream.getTracks().forEach(t => t.stop()), 2000);
+      if (!localStream) {
+        alert("Start live stream first to test audio.");
+        return;
+      }
+      try {
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (!audioTrack) throw new Error("No audio track");
+        // create a temporary audio element to monitor self
+        const testCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = testCtx.createMediaStreamSource(localStream);
+        const destination = testCtx.destination;
+        source.connect(destination);
+        await testCtx.resume();
+        // show temporary indicator
+        const originalText = testAudioBtn.textContent;
+        testAudioBtn.textContent = "🔊 Listening...";
+        setTimeout(() => {
+          testCtx.close();
+          testAudioBtn.textContent = originalText;
+        }, 2500);
+      } catch (err) {
+        alert("Test failed: " + err.message);
+      }
     });
 
-    // Socket events (original WebRTC signaling)
+    // Socket events (WebRTC signaling)
     socket.on("connect", () => updateConnectionStatusUI("Connected", "bg-green-500"));
     socket.on("disconnect", () => updateConnectionStatusUI("Reconnecting", "bg-red-500"));
     socket.on("student-join", async ({ studentId }) => {
@@ -559,7 +569,6 @@
 
     window.addEventListener('beforeunload', () => { if(isLive) stopLiveStream(); });
     updateConnectionStatusUI("Ready", "bg-green-500");
-    // Initially show placeholder
     setCameraPlaceholder(true);
   </script>
 </body>
