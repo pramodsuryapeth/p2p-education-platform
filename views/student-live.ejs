@@ -20,19 +20,11 @@
       backdrop-filter: blur(16px);
       border: 1px solid rgba(66, 153, 225, 0.25);
     }
-    .live-pulse {
-      animation: gentlePulse 1.5s infinite;
-    }
-    @keyframes gentlePulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(1.05); }
-    }
     .video-container {
       background: #000;
       border-radius: 1.5rem;
       overflow: hidden;
       box-shadow: 0 25px 40px -12px rgba(0,0,0,0.6);
-      transition: all 0.2s;
     }
     .mirror-video {
       transform: scaleX(-1);
@@ -48,6 +40,13 @@
     .control-btn:hover {
       transform: scale(1.05);
       background: rgba(59,130,246,0.9);
+    }
+    .chat-message {
+      animation: fadeSlide 0.2s ease-out;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateX(8px); }
+      to { opacity: 1; transform: translateX(0); }
     }
   </style>
 </head>
@@ -79,6 +78,7 @@
 
   <main class="container mx-auto px-4 pt-20 pb-8">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Video section (2/3 width) -->
       <div class="lg:col-span-2 space-y-4">
         <div class="video-container relative group">
           <video id="studentVideo" autoplay playsinline class="w-full h-auto max-h-[70vh] object-contain mirror-video"></video>
@@ -115,7 +115,9 @@
         </div>
       </div>
 
+      <!-- Right column: Audio + Chat -->
       <div class="space-y-5">
+        <!-- Audio Studio card (unchanged) -->
         <div class="glass-panel rounded-2xl p-5">
           <div class="flex items-center gap-2 mb-4">
             <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"><i class="fas fa-headphones text-emerald-400 text-sm"></i></div>
@@ -140,19 +142,38 @@
             </div>
           </div>
         </div>
+
+        <!-- NEW: Live Chat (session-only, cleared when tutor ends) -->
+        <div class="glass-panel rounded-2xl overflow-hidden flex flex-col h-[320px]">
+          <div class="px-4 py-3 border-b border-white/10 flex items-center gap-2">
+            <i class="fas fa-comments text-blue-400"></i>
+            <span class="font-semibold text-sm">Class Chat</span>
+            <span class="text-[10px] bg-blue-500/30 px-2 py-0.5 rounded-full ml-auto">live</span>
+          </div>
+          <div id="chatMessagesContainer" class="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
+            <div class="text-center text-gray-500 text-xs py-4"><i class="fas fa-comment-dots"></i> Chat will appear here</div>
+          </div>
+          <div class="p-3 border-t border-white/10 flex gap-2">
+            <input type="text" id="chatMessageInput" placeholder="Ask a question..." class="flex-1 bg-black/40 border border-white/20 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500 transition">
+            <button id="sendChatBtn" class="bg-blue-600 hover:bg-blue-500 rounded-full px-4 py-1.5 text-xs transition">Send</button>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
   <script>
+    // ======================= ORIGINAL FUNCTIONALITY (PRESERVED) =======================
     const socket = io();
     const tutorId = "<%= tutor._id %>";
     const studentId = "<%= user.id %>";
+    const studentName = "<%= user.name || 'Student' %>";
     const video = document.getElementById("studentVideo");
     
     let peerConnection = null;
     let currentVolume = 1.0;
 
+    // DOM elements (original)
     const viewerCountSpan = document.getElementById("viewerCountDisplay");
     const streamStatusText = document.getElementById("streamStatusText");
     const iceStateText = document.getElementById("iceStateText");
@@ -163,6 +184,7 @@
     const volumePercent = document.getElementById("volumePercent");
     const studentMuteBtn = document.getElementById("studentMuteBtn");
 
+    // Original functions
     function setVolume(value) {
       currentVolume = Math.min(1.0, Math.max(0, value));
       video.volume = currentVolume;
@@ -190,13 +212,11 @@
 
     function createPeerConnection() {
       const pc = new RTCPeerConnection(pcConfig);
-
       pc.ontrack = (event) => {
         if (event.streams && event.streams[0]) {
           const remoteStream = event.streams[0];
           video.srcObject = remoteStream;
           video.play().catch(e => console.log(e));
-          
           if (event.track.kind === 'video') {
             updateConnectionInfo('videoStatus', 'Live', false);
             event.track.onunmute = () => updateConnectionInfo('videoStatus', 'Live', false);
@@ -209,7 +229,6 @@
           }
         }
       };
-
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
         updateConnectionInfo('iceState', state);
@@ -220,11 +239,9 @@
           updateConnectionInfo('streamStatus', 'Connection failed', true);
         }
       };
-
       pc.onsignalingstatechange = () => {
         updateConnectionInfo('signalingState', pc.signalingState);
       };
-
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit("ice-candidate", {
@@ -236,7 +253,6 @@
           });
         }
       };
-
       return pc;
     }
 
@@ -252,9 +268,9 @@
       }
     }
 
+    // Socket event handlers (original)
     socket.on("connect", () => console.log("Socket connected"));
     socket.on("verification-response", (data) => console.log("Verified", data));
-    
     socket.on("tutor-offer", async ({ offer }) => {
       try {
         if (!peerConnection) peerConnection = createPeerConnection();
@@ -264,7 +280,6 @@
         socket.emit("student-answer", { answer: peerConnection.localDescription, tutorId, studentId, socketId: socket.id });
       } catch (err) { console.error("Offer error", err); }
     });
-
     socket.on("ice-candidate", async ({ candidate, role }) => {
       if (role === "tutor" && candidate && peerConnection) {
         try {
@@ -272,15 +287,11 @@
         } catch (err) { console.error("ICE add error", err); }
       }
     });
-
     socket.on("viewerCountUpdate", (count) => {
       viewerCountSpan.innerText = count;
     });
 
-    socket.on("tutorStoppedLive", () => {
-      setTimeout(() => window.close(), 4000);
-    });
-
+    // Original audio controls
     function toggleMute() {
       video.muted = !video.muted;
       const isMuted = video.muted;
@@ -289,17 +300,88 @@
       const floatingBtn = document.getElementById("floatingMuteBtn");
       if (floatingBtn) floatingBtn.innerHTML = isMuted ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
     }
-
     studentMuteBtn.addEventListener("click", toggleMute);
     volumeSlider.addEventListener("input", (e) => setVolume(e.target.value / 100));
-    
     document.getElementById("floatingMuteBtn")?.addEventListener("click", toggleMute);
     document.getElementById("floatingVolumeUp")?.addEventListener("click", () => setVolume(Math.min(1, currentVolume + 0.1)));
     document.getElementById("floatingVolumeDown")?.addEventListener("click", () => setVolume(Math.max(0, currentVolume - 0.1)));
 
+    // ======================= NEW: SESSION-ONLY CHAT FEATURE =======================
+    const chatMessagesDiv = document.getElementById("chatMessagesContainer");
+    const chatInput = document.getElementById("chatMessageInput");
+    const sendChatBtn = document.getElementById("sendChatBtn");
+    let chatMessageList = []; // local store (cleared on tutor stop)
+
+    function addChatMessage(senderName, message, isOwn = false) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `chat-message text-xs ${isOwn ? 'text-right' : ''}`;
+      if (isOwn) {
+        messageDiv.innerHTML = `<span class="text-blue-300 font-semibold">You:</span> <span class="text-gray-200">${escapeHtml(message)}</span>`;
+      } else {
+        messageDiv.innerHTML = `<span class="text-emerald-300 font-semibold">${escapeHtml(senderName)}:</span> <span class="text-gray-200">${escapeHtml(message)}</span>`;
+      }
+      chatMessagesDiv.appendChild(messageDiv);
+      chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+      // keep only last 100 messages
+      while (chatMessagesDiv.children.length > 100) chatMessagesDiv.removeChild(chatMessagesDiv.firstChild);
+    }
+
+    function clearChat() {
+      chatMessagesDiv.innerHTML = '<div class="text-center text-gray-500 text-xs py-4"><i class="fas fa-comment-dots"></i> Chat cleared — session ended</div>';
+      chatMessageList = [];
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    function sendChatMessage() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      // Emit to server for broadcast to all students & tutor in this session
+      socket.emit("student-chat-message", {
+        tutorId: tutorId,
+        studentId: studentId,
+        studentName: studentName,
+        message: msg
+      });
+      // Add to own UI immediately
+      addChatMessage(studentName, msg, true);
+      chatInput.value = '';
+    }
+
+    // Listen for incoming chat messages from server
+    socket.on("chat-message", (data) => {
+      // data: { senderName, message, senderId }
+      if (data.senderId === studentId) return; // already added locally
+      addChatMessage(data.senderName, data.message, false);
+    });
+
+    // When tutor stops live, clear chat automatically
+    socket.on("tutorStoppedLive", () => {
+      clearChat();
+      setTimeout(() => window.close(), 4000);
+    });
+
+    // Also clear chat on page unload? Not needed, but we can ensure no persistence.
+    window.addEventListener('beforeunload', () => {
+      if (peerConnection) peerConnection.close();
+    });
+
+    // Attach chat send event
+    sendChatBtn.addEventListener("click", sendChatMessage);
+    chatInput.addEventListener("keypress", (e) => {
+      if (e.key === 'Enter') sendChatMessage();
+    });
+
+    // Initial load
     window.addEventListener('load', initializeConnection);
-    window.addEventListener('beforeunload', () => { if (peerConnection) peerConnection.close(); });
-    
     setVolume(1.0);
   </script>
 </body>
