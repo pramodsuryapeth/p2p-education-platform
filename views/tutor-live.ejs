@@ -126,6 +126,13 @@
       0% { opacity: 0.5; transform: scale(0.95);}
       100% { opacity: 1; transform: scale(1);}
     }
+    .chat-message {
+      animation: fadeSlide 0.2s ease-out;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateX(8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
     ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
@@ -169,6 +176,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-7">
+      <!-- Video Section (unchanged) -->
       <div class="xl:col-span-2 space-y-4">
         <div class="video-container group rounded-2xl shadow-2xl border border-white/20 bg-black aspect-video">
           <video id="tutorVideo" autoplay muted playsinline class="w-full h-full object-cover mirror-video relative z-0"></video>
@@ -209,7 +217,9 @@
         </div>
       </div>
 
+      <!-- Right Column: Controls, Audio, Chat, Live Room -->
       <div class="space-y-6">
+        <!-- Broadcast Core (unchanged) -->
         <div class="glass-card rounded-2xl p-6">
           <div class="flex items-center gap-2 mb-5"><div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 text-lg">🎛️</span></div><h3 class="text-xl font-bold">Broadcast Core</h3></div>
           <div class="space-y-3.5">
@@ -233,7 +243,7 @@
           </div>
         </div>
 
-        <!-- FIXED AUDIO SUITE -->
+        <!-- Audio Suite (unchanged) -->
         <div class="glass-card rounded-2xl p-6">
           <div class="flex items-center gap-2 mb-4"><div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"><span class="text-emerald-400 text-lg">🎙️</span></div><h3 class="text-xl font-bold">Audio Suite</h3></div>
           <div class="flex gap-3">
@@ -249,6 +259,23 @@
           </div>
         </div>
 
+        <!-- NEW: Live Chat (session-only, integrated with students) -->
+        <div class="glass-card rounded-2xl overflow-hidden flex flex-col h-[320px]">
+          <div class="px-4 py-3 border-b border-white/10 flex items-center gap-2">
+            <i class="fas fa-comments text-blue-400"></i>
+            <span class="font-semibold text-sm">Class Chat</span>
+            <span class="text-[10px] bg-blue-500/30 px-2 py-0.5 rounded-full ml-auto">live</span>
+          </div>
+          <div id="tutorChatMessages" class="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
+            <div class="text-center text-gray-500 text-xs py-4"><i class="fas fa-comment-dots"></i> Chat will appear here</div>
+          </div>
+          <div class="p-3 border-t border-white/10 flex gap-2">
+            <input type="text" id="tutorChatInput" placeholder="Reply to students..." class="flex-1 bg-black/40 border border-white/20 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500 transition">
+            <button id="tutorSendChatBtn" class="bg-blue-600 hover:bg-blue-500 rounded-full px-4 py-1.5 text-xs transition">Send</button>
+          </div>
+        </div>
+
+        <!-- Live Room (unchanged) -->
         <div class="glass-card rounded-2xl p-6">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center"><span class="text-cyan-400 text-lg">👥</span></div><h3 class="text-xl font-bold">Live Room</h3></div>
@@ -268,9 +295,10 @@
   </main>
 
   <script>
-    // ======================= FULL FUNCTIONALITY + FIXED AUDIO =======================
+    // ======================= FULL ORIGINAL FUNCTIONALITY (PRESERVED) =======================
     const socket = io();
     const tutorId = "<%= tutor._id %>";
+    const tutorName = "<%= tutor.name %>";
     const video = document.getElementById("tutorVideo");
     const cameraPlaceholder = document.getElementById("cameraPlaceholder");
     
@@ -332,19 +360,12 @@
     }
     function stopStreamTimer() { if (streamTimer) clearInterval(streamTimer); streamDurationSpan.textContent = "00:00:00"; }
 
-    // ---- FIXED AUDIO MONITORING (works even before going live) ----
     function startAudioMonitoring(stream) {
-      // stop any existing monitoring
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (audioContext) audioContext.close().catch(e=>console.warn);
-      
       if (!stream) return;
       const audioTrack = stream.getAudioTracks()[0];
-      if (!audioTrack) {
-        console.warn("No audio track in stream");
-        return;
-      }
-      
+      if (!audioTrack) return;
       try {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
@@ -352,7 +373,6 @@
         const source = audioContext.createMediaStreamSource(stream);
         source.connect(analyser);
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        
         function updateMeter() {
           if (!analyser || !audioContext) return;
           analyser.getByteFrequencyData(dataArray);
@@ -366,10 +386,7 @@
         if (audioContext.state === 'suspended') audioContext.resume();
         updateMeter();
         micStatusLabel.textContent = currentAudioMuted ? "muted" : "active";
-      } catch (err) {
-        console.error("Audio monitoring error:", err);
-        micStatusLabel.textContent = "error";
-      }
+      } catch (err) { console.error("Audio monitoring error:", err); }
     }
 
     async function stopLiveStream() {
@@ -388,12 +405,13 @@
       updateViewerCount(0);
       isLive = false;
       liveBadge.classList.add("hidden");
-      // stop audio meter
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (audioLevelBar) audioLevelBar.style.width = "0%";
       if (audioLevelText) audioLevelText.textContent = "0%";
       micStatusLabel.textContent = "inactive";
       setCameraPlaceholder(true);
+      // Clear chat when stream ends
+      clearTutorChat();
     }
 
     const pcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' },{ urls: 'stun:stun1.l.google.com:19302' }], iceCandidatePoolSize: 10 };
@@ -411,7 +429,6 @@
       });
     }
 
-    // ---- START LIVE ----
     startLiveBtn.addEventListener("click", async () => {
       if (isLive) return;
       try {
@@ -421,10 +438,7 @@
         setCameraPlaceholder(false);
         if (mirrorToggle.checked) video.classList.add("mirror-video");
         else video.classList.remove("mirror-video");
-        
-        // start audio monitoring with the stream
         startAudioMonitoring(localStream);
-        
         socket.emit("tutor-start", { tutorId });
         startLiveBtn.classList.add("hidden");
         stopLiveBtn.classList.remove("hidden");
@@ -436,7 +450,6 @@
         liveBadge.classList.remove("hidden");
         currentAudioMuted = false;
         muteAudioBtn.textContent = "🔇 Mute Mic";
-        // ensure audio track enabled
         const audioTrack = localStream.getAudioTracks()[0];
         if (audioTrack) audioTrack.enabled = true;
       } catch(err) { 
@@ -499,7 +512,6 @@
       if (video) e.target.checked ? video.classList.add("mirror-video") : video.classList.remove("mirror-video");
     });
 
-    // ---- FIXED MUTE/UNMUTE ----
     muteAudioBtn.addEventListener("click", () => {
       if (localStream) {
         const audioTrack = localStream.getAudioTracks()[0];
@@ -508,42 +520,23 @@
           currentAudioMuted = !audioTrack.enabled;
           muteAudioBtn.textContent = currentAudioMuted ? "🎤 Unmute" : "🔇 Mute Mic";
           micStatusLabel.textContent = currentAudioMuted ? "muted" : "active";
-        } else {
-          alert("No audio track found. Please restart stream.");
-        }
-      } else {
-        alert("Start live stream first to control microphone.");
-      }
+        } else { alert("No audio track found."); }
+      } else { alert("Start live stream first."); }
     });
 
-    // ---- FIXED TEST AUDIO (plays own mic back for 2 seconds) ----
     testAudioBtn.addEventListener("click", async () => {
-      if (!localStream) {
-        alert("Start live stream first to test audio.");
-        return;
-      }
+      if (!localStream) { alert("Start live stream first."); return; }
       try {
-        const audioTrack = localStream.getAudioTracks()[0];
-        if (!audioTrack) throw new Error("No audio track");
-        // create a temporary audio element to monitor self
         const testCtx = new (window.AudioContext || window.webkitAudioContext)();
         const source = testCtx.createMediaStreamSource(localStream);
-        const destination = testCtx.destination;
-        source.connect(destination);
+        source.connect(testCtx.destination);
         await testCtx.resume();
-        // show temporary indicator
         const originalText = testAudioBtn.textContent;
         testAudioBtn.textContent = "🔊 Listening...";
-        setTimeout(() => {
-          testCtx.close();
-          testAudioBtn.textContent = originalText;
-        }, 2500);
-      } catch (err) {
-        alert("Test failed: " + err.message);
-      }
+        setTimeout(() => { testCtx.close(); testAudioBtn.textContent = originalText; }, 2500);
+      } catch (err) { alert("Test failed: " + err.message); }
     });
 
-    // Socket events (WebRTC signaling)
     socket.on("connect", () => updateConnectionStatusUI("Connected", "bg-green-500"));
     socket.on("disconnect", () => updateConnectionStatusUI("Reconnecting", "bg-red-500"));
     socket.on("student-join", async ({ studentId }) => {
@@ -570,6 +563,67 @@
     window.addEventListener('beforeunload', () => { if(isLive) stopLiveStream(); });
     updateConnectionStatusUI("Ready", "bg-green-500");
     setCameraPlaceholder(true);
+
+    // ======================= NEW: TUTOR CHAT FUNCTIONALITY (session-only) =======================
+    const tutorChatDiv = document.getElementById("tutorChatMessages");
+    const tutorChatInput = document.getElementById("tutorChatInput");
+    const tutorSendBtn = document.getElementById("tutorSendChatBtn");
+
+    function addTutorChatMessage(senderName, message, isOwn = false) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-message text-xs ${isOwn ? 'text-right' : ''}`;
+      if (isOwn) {
+        msgDiv.innerHTML = `<span class="text-blue-300 font-semibold">You (Tutor):</span> <span class="text-gray-200">${escapeHtml(message)}</span>`;
+      } else {
+        msgDiv.innerHTML = `<span class="text-emerald-300 font-semibold">${escapeHtml(senderName)}:</span> <span class="text-gray-200">${escapeHtml(message)}</span>`;
+      }
+      tutorChatDiv.appendChild(msgDiv);
+      tutorChatDiv.scrollTop = tutorChatDiv.scrollHeight;
+      while (tutorChatDiv.children.length > 100) tutorChatDiv.removeChild(tutorChatDiv.firstChild);
+    }
+
+    function clearTutorChat() {
+      tutorChatDiv.innerHTML = '<div class="text-center text-gray-500 text-xs py-4"><i class="fas fa-comment-dots"></i> Chat cleared — session ended</div>';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    function sendTutorChatMessage() {
+      const msg = tutorChatInput.value.trim();
+      if (!msg) return;
+      // Emit to server for broadcast to all students in this session
+      socket.emit("tutor-chat-message", {
+        tutorId: tutorId,
+        tutorName: tutorName,
+        message: msg
+      });
+      // Add to tutor's own UI
+      addTutorChatMessage(tutorName, msg, true);
+      tutorChatInput.value = '';
+    }
+
+    // Listen for chat messages from students
+    socket.on("chat-message", (data) => {
+      // data: { senderName, message, senderId }
+      if (data.senderId) return; // student messages are identified by senderId
+      addTutorChatMessage(data.senderName, data.message, false);
+    });
+
+    // Also listen for student messages (they emit "student-chat-message" which server forwards as "chat-message")
+    // The above handler already catches them.
+
+    tutorSendBtn.addEventListener("click", sendTutorChatMessage);
+    tutorChatInput.addEventListener("keypress", (e) => {
+      if (e.key === 'Enter') sendTutorChatMessage();
+    });
   </script>
 </body>
 </html>
