@@ -2,86 +2,147 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Class - <%= tutor.name %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Live Class • <%= tutor.name %></title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: radial-gradient(circle at 20% 30%, #0a0f1e, #03050b);
+      min-height: 100vh;
+    }
+    .glass-panel {
+      background: rgba(12, 20, 30, 0.55);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(66, 153, 225, 0.25);
+    }
+    .live-pulse {
+      animation: gentlePulse 1.5s infinite;
+    }
+    @keyframes gentlePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
     .video-container {
       background: #000;
-      border-radius: 8px;
+      border-radius: 1.5rem;
       overflow: hidden;
+      box-shadow: 0 25px 40px -12px rgba(0,0,0,0.6);
+      transition: all 0.2s;
     }
-      .mirror-video {
+    .mirror-video {
       transform: scaleX(-1);
       -webkit-transform: scaleX(-1);
-      -moz-transform: scaleX(-1);
-      -ms-transform: scaleX(-1);
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+    .control-btn {
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+    }
+    .control-btn:hover {
+      transform: scale(1.05);
+      background: rgba(59,130,246,0.9);
     }
   </style>
 </head>
-<body class="bg-gray-900 text-white">
-  <div class="container mx-auto p-4">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-4">
-      <div>
-        <h1 class="text-2xl font-bold">🎥 <%= tutor.name %>'s Live Class</h1>
-        <p class="text-gray-400" id="streamStatus">Connecting...</p>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div id="viewerCount" class="bg-gray-800 px-3 py-1 rounded">
-          👥 <span>0</span> viewers
+<body class="text-white">
+
+  <div class="fixed top-0 left-0 right-0 z-20 bg-black/40 backdrop-blur-md border-b border-white/10">
+    <div class="container mx-auto px-5 py-3 flex justify-between items-center flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+          <i class="fas fa-chalkboard-user text-white text-sm"></i>
         </div>
-        <button onclick="window.close()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
-          Leave
-        </button>
-      </div>
-    </div>
-
-    <!-- Video Area -->
-    <div class="video-container mb-4">
-      <video 
-        id="studentVideo" 
-        autoplay 
-        playsinline 
-        controls
-        class="w-full h-auto max-h-96 mirror-video"
-      >
-        Your browser doesn't support video playback.
-      </video>
-    </div>
-
-    <!-- Connection Info -->
-    <div class="bg-gray-800 rounded-lg p-4">
-      <h3 class="font-semibold mb-2">Connection Information</h3>
-      <div id="connectionInfo" class="text-sm space-y-1">
-        <div>Status: <span id="connectionStatus" class="text-yellow-500">Connecting...</span></div>
-        <div>ICE State: <span id="iceState">-</span></div>
-        <div>Signaling State: <span id="signalingState">-</span></div>
-        <div>Video: <span id="videoStatus" class="text-yellow-500">Loading...</span></div>
-        <div>Audio: <span id="audioStatus" class="text-yellow-500">Loading...</span></div>
-      </div>
-    </div>
-
-    <!-- Audio Controls -->
-    <div class="bg-gray-800 rounded-lg p-4 mt-4">
-      <h3 class="font-semibold mb-3">Audio Controls</h3>
-      <div class="flex space-x-4 items-center">
-        <button id="studentMuteBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
-          🔇 Mute
-        </button>
-        <button id="volumeUpBtn" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition">
-          🔊 Volume Up
-        </button>
-        <button id="volumeDownBtn" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition">
-          🔈 Volume Down
-        </button>
-        <div class="text-sm">
-          Volume: <span id="volumeLevel">100%</span>
+        <div>
+          <h1 class="font-bold text-base md:text-lg tracking-tight"><%= tutor.name %>'s Studio</h1>
+          <p class="text-[11px] text-gray-300 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> LIVE CLASS</p>
         </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="bg-black/50 backdrop-blur px-3 py-1.5 rounded-full text-xs flex items-center gap-2">
+          <i class="fas fa-eye text-sky-400 text-xs"></i>
+          <span id="viewerCountDisplay" class="font-mono font-bold">0</span>
+          <span class="text-gray-300">watching</span>
+        </div>
+        <button onclick="window.close()" class="bg-red-600/80 hover:bg-red-600 text-white px-4 py-1.5 rounded-full text-sm flex items-center gap-2 transition-all shadow-md">
+          <i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline">Leave</span>
+        </button>
       </div>
     </div>
   </div>
+
+  <main class="container mx-auto px-4 pt-20 pb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-4">
+        <div class="video-container relative group">
+          <video id="studentVideo" autoplay playsinline class="w-full h-auto max-h-[70vh] object-contain mirror-video"></video>
+          
+          <div class="absolute top-4 left-4 flex gap-2 opacity-80 group-hover:opacity-100 transition">
+            <div class="glass-panel rounded-full px-3 py-1 text-xs flex items-center gap-1.5">
+              <i class="fas fa-video text-blue-300 text-xs"></i>
+              <span id="videoStatusBadge">Connecting</span>
+            </div>
+            <div class="glass-panel rounded-full px-3 py-1 text-xs flex items-center gap-1.5">
+              <i class="fas fa-microphone-alt text-green-300 text-xs"></i>
+              <span id="audioStatusBadge">Waiting</span>
+            </div>
+          </div>
+          
+          <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black/60 backdrop-blur-lg rounded-full px-4 py-2">
+            <button id="floatingMuteBtn" class="control-btn bg-white/10 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+              <i class="fas fa-microphone-slash text-sm"></i>
+            </button>
+            <button id="floatingVolumeUp" class="control-btn bg-white/10 hover:bg-blue-600 rounded-full w-8 h-8 flex items-center justify-center">
+              <i class="fas fa-volume-up text-sm"></i>
+            </button>
+            <button id="floatingVolumeDown" class="control-btn bg-white/10 hover:bg-blue-600 rounded-full w-8 h-8 flex items-center justify-center">
+              <i class="fas fa-volume-down text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div class="flex flex-col"><span class="text-gray-400">Stream status</span><span id="streamStatusText" class="font-mono text-cyan-300 font-semibold">Connecting...</span></div>
+          <div class="flex flex-col"><span class="text-gray-400">ICE state</span><span id="iceStateText" class="font-mono">-</span></div>
+          <div class="flex flex-col"><span class="text-gray-400">Signaling</span><span id="signalingStateText" class="font-mono">-</span></div>
+          <div class="flex flex-col"><span class="text-gray-400">Quality</span><span id="qualityHint" class="text-green-300">HD</span></div>
+        </div>
+      </div>
+
+      <div class="space-y-5">
+        <div class="glass-panel rounded-2xl p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"><i class="fas fa-headphones text-emerald-400 text-sm"></i></div>
+            <h3 class="font-bold">Audio Studio</h3>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2"><i class="fas fa-microphone-alt text-gray-400"></i><span class="text-xs">Microphone output</span></div>
+              <button id="studentMuteBtn" class="bg-gray-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-1">
+                <i class="fas fa-microphone-slash"></i> Mute
+              </button>
+            </div>
+            <div class="flex items-center gap-3">
+              <i class="fas fa-volume-down text-gray-400 text-sm"></i>
+              <input type="range" id="volumeSlider" min="0" max="100" value="100" class="flex-1 h-1.5 rounded-full bg-gray-700 accent-blue-500">
+              <i class="fas fa-volume-up text-gray-400 text-sm"></i>
+              <span id="volumePercent" class="text-xs font-mono w-10">100%</span>
+            </div>
+            <div class="pt-2 text-[11px] text-gray-400 flex justify-between">
+              <span><i class="far fa-clock"></i> Low-latency mode</span>
+              <span><i class="fas fa-shield-alt"></i> Encrypted stream</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 
   <script>
     const socket = io();
@@ -90,30 +151,33 @@
     const video = document.getElementById("studentVideo");
     
     let peerConnection = null;
-    let stream = null;
     let currentVolume = 1.0;
 
-    // Verify we have the correct IDs
-    console.log("=== STUDENT CONNECTION INFO ===");
-    console.log("Student ID:", studentId);
-    console.log("Tutor ID:", tutorId);
-    console.log("Socket ID:", socket.id);
-    console.log("===============================");
+    const viewerCountSpan = document.getElementById("viewerCountDisplay");
+    const streamStatusText = document.getElementById("streamStatusText");
+    const iceStateText = document.getElementById("iceStateText");
+    const signalingStateText = document.getElementById("signalingStateText");
+    const videoStatusBadge = document.getElementById("videoStatusBadge");
+    const audioStatusBadge = document.getElementById("audioStatusBadge");
+    const volumeSlider = document.getElementById("volumeSlider");
+    const volumePercent = document.getElementById("volumePercent");
+    const studentMuteBtn = document.getElementById("studentMuteBtn");
 
-    // Update connection info
-    function updateConnectionInfo(field, value, color = 'white') {
-      const element = document.getElementById(field);
-      if (element) {
-        element.textContent = value;
-        element.style.color = color;
-      }
+    function setVolume(value) {
+      currentVolume = Math.min(1.0, Math.max(0, value));
+      video.volume = currentVolume;
+      volumeSlider.value = currentVolume * 100;
+      volumePercent.innerText = Math.round(currentVolume * 100) + '%';
     }
 
-    function updateVolumeDisplay() {
-      document.getElementById("volumeLevel").textContent = Math.round(currentVolume * 100) + '%';
+    function updateConnectionInfo(field, value, isError = false) {
+      if (field === 'streamStatus') streamStatusText.innerText = value;
+      if (field === 'iceState') { iceStateText.innerText = value; iceStateText.style.color = isError ? '#EF4444' : '#86efac'; }
+      if (field === 'signalingState') signalingStateText.innerText = value;
+      if (field === 'videoStatus') { videoStatusBadge.innerText = value; videoStatusBadge.style.color = isError ? '#f87171' : '#4ade80'; }
+      if (field === 'audioStatus') { audioStatusBadge.innerText = value; audioStatusBadge.style.color = isError ? '#f87171' : '#4ade80'; }
     }
 
-    // Enhanced ICE servers configuration
     const pcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -124,69 +188,36 @@
       iceCandidatePoolSize: 10
     };
 
-    // Create peer connection
     function createPeerConnection() {
-      console.log("Creating enhanced peer connection...");
-      
       const pc = new RTCPeerConnection(pcConfig);
 
-      // Handle incoming tracks with better logging
       pc.ontrack = (event) => {
-        console.log("🎬 Received remote track:", event.track.kind, event.track.readyState);
-        
         if (event.streams && event.streams[0]) {
-          const stream = event.streams[0];
-          video.srcObject = stream;
+          const remoteStream = event.streams[0];
+          video.srcObject = remoteStream;
+          video.play().catch(e => console.log(e));
           
-          // Log stream details
-          console.log(`📹 Stream received - Video tracks: ${stream.getVideoTracks().length}, Audio tracks: ${stream.getAudioTracks().length}`);
-          
-          // Monitor track events
-          event.track.onunmute = () => {
-            console.log(`✅ ${event.track.kind} track unmuted - should be visible now`);
-            if (event.track.kind === 'video') {
-              document.getElementById("videoStatus").textContent = "Playing";
-              document.getElementById("videoStatus").className = "text-green-500";
-            } else {
-              document.getElementById("audioStatus").textContent = "Playing";
-              document.getElementById("audioStatus").className = "text-green-500";
-            }
-          };
-          
-          // Force play the video
-          video.play().then(() => {
-            console.log("✅ Video playback started");
-          }).catch(e => {
-            console.log("❌ Auto-play prevented, user interaction required:", e);
-            // Add click handler to start video
-            document.addEventListener('click', function startVideo() {
-              video.play();
-              document.removeEventListener('click', startVideo);
-            }, { once: true });
-          });
+          if (event.track.kind === 'video') {
+            updateConnectionInfo('videoStatus', 'Live', false);
+            event.track.onunmute = () => updateConnectionInfo('videoStatus', 'Live', false);
+            event.track.onmute = () => updateConnectionInfo('videoStatus', 'Muted', true);
+          }
+          if (event.track.kind === 'audio') {
+            updateConnectionInfo('audioStatus', 'Active', false);
+            event.track.onunmute = () => updateConnectionInfo('audioStatus', 'Active', false);
+            event.track.onmute = () => updateConnectionInfo('audioStatus', 'Muted', true);
+          }
         }
       };
 
-      // Enhanced ICE handling
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
-        console.log("🧊 ICE connection state:", state);
         updateConnectionInfo('iceState', state);
-        
-        switch(state) {
-          case 'connected':
-            updateConnectionInfo('connectionStatus', 'Connected', '#10B981');
-            updateConnectionInfo('streamStatus', 'Watching Live', '#10B981');
-            console.log("✅ ICE Connected successfully!");
-            break;
-          case 'checking':
-            updateConnectionInfo('connectionStatus', 'Connecting...', '#F59E0B');
-            console.log("🔄 ICE Checking connection...");
-            break;
-          case 'failed':
-            updateConnectionInfo('connectionStatus', 'Connection Failed', '#EF4444');
-            console.log("❌ ICE Connection failed");
-            break;
+        if (state === 'connected') {
+          updateConnectionInfo('streamStatus', 'Live');
+          streamStatusText.style.color = '#10B981';
+        } else if (state === 'failed') {
+          updateConnectionInfo('streamStatus', 'Connection failed', true);
         }
       };
 
@@ -194,10 +225,8 @@
         updateConnectionInfo('signalingState', pc.signalingState);
       };
 
-      // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("📤 Sending ICE candidate to tutor");
           socket.emit("ice-candidate", {
             candidate: event.candidate,
             tutorId: tutorId,
@@ -205,149 +234,73 @@
             studentId: studentId,
             socketId: socket.id
           });
-        } else {
-          console.log("✅ All ICE candidates gathered");
         }
       };
 
       return pc;
     }
 
-    // Initialize connection
     async function initializeConnection() {
       try {
-        console.log("Initializing connection to tutor:", tutorId);
-        
-        // Create peer connection
+        updateConnectionInfo('streamStatus', 'Joining session...');
         peerConnection = createPeerConnection();
-        
-        // Join the tutor's room with proper IDs
-        socket.emit("student-join", { 
-          tutorId: tutorId, 
-          studentId: studentId,
-          socketId: socket.id
-        });
-        
-        updateConnectionInfo('connectionStatus', 'Joining session...', '#F59E0B');
-
-        // Test the connection with verification
-        socket.emit("student-verify", {
-          studentId: studentId,
-          tutorId: tutorId,
-          timestamp: Date.now()
-        });
-
-      } catch (error) {
-        console.error("Error initializing connection:", error);
-        updateConnectionInfo('connectionStatus', 'Connection failed', '#EF4444');
+        socket.emit("student-join", { tutorId, studentId, socketId: socket.id });
+        socket.emit("student-verify", { studentId, tutorId, timestamp: Date.now() });
+      } catch (err) {
+        console.error(err);
+        updateConnectionInfo('streamStatus', 'Failed to connect', true);
       }
     }
 
-    // Socket event handlers
-    socket.on("connect", () => {
-      console.log("Connected to server");
-    });
-
-    socket.on("verification-response", (data) => {
-      console.log("✅ Server verified our connection:", data);
-    });
-
+    socket.on("connect", () => console.log("Socket connected"));
+    socket.on("verification-response", (data) => console.log("Verified", data));
+    
     socket.on("tutor-offer", async ({ offer }) => {
-      console.log("Received offer from tutor");
-      
       try {
-        if (!peerConnection) {
-          peerConnection = createPeerConnection();
-        }
-
+        if (!peerConnection) peerConnection = createPeerConnection();
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-        console.log("Set remote description successfully");
-
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
-        
-        console.log("Sending answer to tutor");
-        socket.emit("student-answer", {
-          answer: peerConnection.localDescription,
-          tutorId: tutorId,
-          studentId: studentId,
-          socketId: socket.id
-        });
-
-      } catch (error) {
-        console.error("Error handling tutor offer:", error);
-      }
+        socket.emit("student-answer", { answer: peerConnection.localDescription, tutorId, studentId, socketId: socket.id });
+      } catch (err) { console.error("Offer error", err); }
     });
 
     socket.on("ice-candidate", async ({ candidate, role }) => {
       if (role === "tutor" && candidate && peerConnection) {
-        console.log("Received ICE candidate from tutor");
         try {
           await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-          console.log("✅ Added ICE candidate from tutor");
-        } catch (error) {
-          console.error("Error adding ICE candidate:", error);
-        }
+        } catch (err) { console.error("ICE add error", err); }
       }
     });
 
-         video.srcObject = localStream;
-        video.classList.add('mirror-video'); 
-
     socket.on("viewerCountUpdate", (count) => {
-      document.querySelector('#viewerCount span').textContent = count;
+      viewerCountSpan.innerText = count;
     });
 
     socket.on("tutorStoppedLive", () => {
-      alert("The tutor has ended the live session.");
-      window.close();
+      setTimeout(() => window.close(), 4000);
     });
 
-    // Audio controls for student
-    document.getElementById("studentMuteBtn").addEventListener("click", () => {
-      if (video.muted) {
-        video.muted = false;
-        document.getElementById("studentMuteBtn").textContent = "🔇 Mute";
-        document.getElementById("audioStatus").textContent = "Playing";
-        document.getElementById("audioStatus").className = "text-green-500";
-      } else {
-        video.muted = true;
-        document.getElementById("studentMuteBtn").textContent = "🔊 Unmute";
-        document.getElementById("audioStatus").textContent = "Muted";
-        document.getElementById("audioStatus").className = "text-red-500";
-      }
-    });
+    function toggleMute() {
+      video.muted = !video.muted;
+      const isMuted = video.muted;
+      studentMuteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-alt"></i> Unmute' : '<i class="fas fa-microphone-slash"></i> Mute';
+      updateConnectionInfo('audioStatus', isMuted ? 'Muted' : 'Active', isMuted);
+      const floatingBtn = document.getElementById("floatingMuteBtn");
+      if (floatingBtn) floatingBtn.innerHTML = isMuted ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
+    }
 
-    document.getElementById("volumeUpBtn").addEventListener("click", () => {
-      currentVolume = Math.min(1.0, currentVolume + 0.1);
-      video.volume = currentVolume;
-      updateVolumeDisplay();
-    });
+    studentMuteBtn.addEventListener("click", toggleMute);
+    volumeSlider.addEventListener("input", (e) => setVolume(e.target.value / 100));
+    
+    document.getElementById("floatingMuteBtn")?.addEventListener("click", toggleMute);
+    document.getElementById("floatingVolumeUp")?.addEventListener("click", () => setVolume(Math.min(1, currentVolume + 0.1)));
+    document.getElementById("floatingVolumeDown")?.addEventListener("click", () => setVolume(Math.max(0, currentVolume - 0.1)));
 
-    document.getElementById("volumeDownBtn").addEventListener("click", () => {
-      currentVolume = Math.max(0, currentVolume - 0.1);
-      video.volume = currentVolume;
-      updateVolumeDisplay();
-    });
-
-    // Handle page visibility changes
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        console.log("Page is hidden");
-      } else {
-        console.log("Page is visible");
-      }
-    });
-
-    // Initialize when page loads
     window.addEventListener('load', initializeConnection);
-
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-      if (peerConnection) {
-        peerConnection.close();
-      }
-    });
+    window.addEventListener('beforeunload', () => { if (peerConnection) peerConnection.close(); });
+    
+    setVolume(1.0);
   </script>
 </body>
 </html>
