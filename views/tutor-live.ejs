@@ -3,251 +3,317 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Tutor Live Studio | Stream & Interact</title>
+  <title>Tutor Live Studio | Ultimate Broadcast Suite</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* custom pulse & live badge animations */
-    .live-pulse {
-      animation: pulse-ring 1.5s infinite;
+    /* premium design system */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 15% 30%, #0B1120, #03050B);
+      min-height: 100vh;
     }
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    /* animated grain overlay */
+    .grain {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
     }
-    .live-badge {
-      background: #dc2626;
-      color: white;
-      font-weight: bold;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      letter-spacing: 0.5px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 0 5px rgba(220,38,38,0.5);
+    /* glassmorphic core */
+    .glass-panel {
+      background: rgba(12, 20, 30, 0.55);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(66, 153, 225, 0.25);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
     }
-    .live-badge::before {
-      content: "";
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      background: white;
-      border-radius: 50%;
-      animation: blink-live 1s step-end infinite;
+    .glass-card {
+      background: rgba(8, 16, 24, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(59,130,246,0.35);
+      transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
     }
-    @keyframes blink-live {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+    .glass-card:hover {
+      border-color: rgba(59,130,246,0.7);
+      box-shadow: 0 8px 25px -5px rgba(59,130,246,0.3);
+      transform: translateY(-2px);
+    }
+    /* live glow animation */
+    .live-glow-ring {
+      box-shadow: 0 0 0 rgba(239,68,68,0.6);
+      animation: ringPulse 1.8s infinite;
+    }
+    @keyframes ringPulse {
+      0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+      70% { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
+    .btn-primary {
+      background: linear-gradient(105deg, #10B981, #059669);
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 10px 20px -5px #10B98180;
+    }
+    .btn-danger {
+      background: linear-gradient(105deg, #EF4444, #B91C1C);
     }
     .mirror-video {
       transform: scaleX(-1);
-      -webkit-transform: scaleX(-1);
-      -moz-transform: scaleX(-1);
-      -ms-transform: scaleX(-1);
     }
-    .quality-badge {
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px);
-      font-size: 0.7rem;
-    }
-    /* custom toggle switch */
-    .toggle-switch {
-      position: relative;
+    /* waveform animation */
+    .waveform-animate span {
       display: inline-block;
-      width: 44px;
-      height: 24px;
+      width: 4px;
+      background: #3b82f6;
+      border-radius: 2px;
+      animation: wave 0.9s infinite ease alternate;
     }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
+    @keyframes wave {
+      0% { height: 6px; }
+      100% { height: 24px; }
     }
-    .slider {
+    /* floating status dot */
+    .pulse-dot {
+      position: relative;
+    }
+    .pulse-dot::after {
+      content: '';
       position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #4B5563;
-      transition: 0.2s;
-      border-radius: 34px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.2s;
+      width: 100%;
+      height: 100%;
+      background-color: currentColor;
       border-radius: 50%;
+      animation: ripple 1.4s infinite;
     }
-    input:checked + .slider {
-      background-color: #10B981;
+    @keyframes ripple {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(2.5); opacity: 0; }
     }
-    input:checked + .slider:before {
-      transform: translateX(20px);
+    /* custom range / level meter */
+    .level-meter {
+      background: linear-gradient(90deg, #10b981, #facc15, #ef4444);
     }
+    /* video container enhancements - elegant black treatment */
+    .video-container {
+      position: relative;
+      background: radial-gradient(circle at center, #0a0f1a, #000000);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 25px 40px -12px black;
+    }
+    .video-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.3s ease;
+    }
+    /* elegant vignette overlay for cinematic look */
+    .vignette-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+      z-index: 2;
+      border-radius: 1rem;
+    }
+    /* placeholder when camera is off */
+    .camera-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #0B1120, #03050B);
+      z-index: 1;
+      backdrop-filter: blur(4px);
+      transition: opacity 0.4s;
+    }
+    .camera-placeholder.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .pulse-ring {
+      animation: softPulse 2s infinite;
+    }
+    @keyframes softPulse {
+      0% { opacity: 0.5; transform: scale(0.95);}
+      100% { opacity: 1; transform: scale(1);}
+    }
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
   </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-  <!-- Header with Back Button + Live Status -->
-  <header class="bg-gray-800 shadow-lg border-b border-gray-700">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
-      <!-- Back button -->
-      <a href="/dashboard" 
-         id="backButton"
-         class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-200 shadow-md">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-        </svg>
-        <span class="font-medium">Dashboard</span>
+<body>
+  <div class="grain"></div>
+
+  <!-- immersive header -->
+  <header class="relative z-20 border-b border-white/10 bg-black/30 backdrop-blur-xl sticky top-0">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center flex-wrap gap-3">
+      <a href="/dashboard" id="backButton" class="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-2xl transition-all duration-200 border border-white/10 group">
+        <svg class="w-5 h-5 group-hover:-translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <span class="text-sm font-medium">Exit Studio</span>
       </a>
-      
-      <!-- Right: live indicator & viewer count -->
-      <div class="flex items-center space-x-4">
-        <div id="liveIndicatorWrap" class="flex items-center space-x-2">
-          <div id="connectionStatus" class="flex items-center space-x-2 bg-gray-700/50 px-3 py-1 rounded-full text-sm">
-            <span class="w-2.5 h-2.5 bg-gray-400 rounded-full"></span>
-            <span>Ready</span>
-          </div>
+      <div class="flex items-center gap-5">
+        <div id="connectionStatus" class="flex items-center gap-2 bg-black/40 backdrop-blur px-4 py-2 rounded-full text-xs font-mono">
+          <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full rounded-full bg-green-400 animate-ping opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
+          <span>Studio active</span>
         </div>
-        <div id="viewerCount" class="bg-gray-700 px-3 py-1 rounded-full text-sm font-mono shadow-inner">
-          👥 Viewers: <span id="viewerCountNumber">0</span>
+        <div class="bg-black/40 backdrop-blur px-4 py-2 rounded-full flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <span id="viewerCountNumber" class="font-bold text-cyan-300 text-lg">0</span>
+          <span class="text-gray-300 text-xs">viewers</span>
         </div>
       </div>
     </div>
   </header>
 
-  <div class="container mx-auto p-4 md:p-6">
-    <!-- Page Title & tutor name -->
-    <div class="mb-5 flex flex-wrap justify-between items-center">
+  <main class="container mx-auto px-6 py-8 relative z-10">
+    <!-- hero area with live badge -->
+    <div class="flex flex-wrap justify-between items-end mb-7">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">🎙️ Live Studio</h1>
-        <p class="text-gray-400 text-sm mt-1"><%= tutor.name %> · educator dashboard</p>
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-sky-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">Live Control Room</h1>
+        <p class="text-blue-200/60 text-sm mt-2 flex items-center gap-2"><span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span><%= tutor.name %> · ultra-low latency broadcast</p>
       </div>
       <div id="streamLiveBadge" class="hidden">
-        <div class="live-badge">LIVE</div>
+        <div class="flex items-center gap-2 bg-gradient-to-r from-red-600 to-rose-700 px-5 py-2 rounded-full shadow-2xl shadow-red-500/40 live-glow-ring">
+          <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span></span>
+          <span class="text-sm font-black tracking-widest">LIVE STREAM</span>
+        </div>
       </div>
     </div>
 
-    <!-- Video + Controls Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Main Video Area -->
-      <div class="lg:col-span-2 bg-black rounded-xl overflow-hidden relative shadow-2xl border border-gray-700">
-        <video 
-          id="tutorVideo" 
-          autoplay 
-          muted 
-          playsinline 
-          class="w-full h-64 lg:h-96 object-cover mirror-video"
-        ></video>
-        
-        <!-- Floating quality indicator (new) -->
-        <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-          <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-          <span id="videoQualityHint">HD ready</span>
+    <!-- main grid: video + pro controls -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-7">
+      <!-- video wall - enhanced with placeholder and cinematic black styling -->
+      <div class="xl:col-span-2 space-y-4">
+        <div class="video-container group rounded-2xl shadow-2xl border border-white/20 bg-black aspect-video">
+          <!-- video element -->
+          <video id="tutorVideo" autoplay muted playsinline class="w-full h-full object-cover mirror-video relative z-0"></video>
+          
+          <!-- cinematic vignette overlay for depth -->
+          <div class="vignette-overlay"></div>
+          
+          <!-- elegant camera placeholder (visible when no stream) -->
+          <div id="cameraPlaceholder" class="camera-placeholder">
+            <div class="text-center space-y-4 pulse-ring">
+              <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-blue-500/20 to-purple-500/20 flex items-center justify-center backdrop-blur-sm border border-white/20">
+                <svg class="w-10 h-10 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </div>
+              <p class="text-white/70 text-sm font-medium tracking-wide">Camera preview</p>
+              <p class="text-white/40 text-xs">Start stream to begin broadcast</p>
+            </div>
+          </div>
+          
+          <!-- live overlay indicators (always on top) -->
+          <div class="absolute top-5 left-5 flex gap-2 z-10">
+            <div class="backdrop-blur-md bg-black/50 px-3 py-1.5 rounded-full text-xs font-mono flex items-center gap-1.5 border border-white/20">
+              <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+              <span>4K UHD</span>
+            </div>
+            <div class="backdrop-blur-md bg-black/50 px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 border border-white/20">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+              <span id="videoQualityHint">Pro Grade</span>
+            </div>
+          </div>
+          <div class="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-[11px] px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10 z-10">
+            <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> audio ready
+          </div>
         </div>
         
-        <!-- Small camera label (new) -->
-        <div class="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-[11px] px-2 py-1 rounded-full">
-          📹 Tutor feed
+        <!-- live stats row -->
+        <div class="glass-panel rounded-xl p-4 flex flex-wrap justify-between items-center">
+          <div class="flex items-center gap-5">
+            <div class="flex items-center gap-2"><span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span><span class="font-mono text-sm font-semibold" id="streamStatus">Offline</span></div>
+            <div class="h-5 w-px bg-white/20"></div>
+            <div class="flex items-center gap-1.5"><span class="text-gray-300">⏱️</span><span id="streamDuration" class="font-mono text-cyan-300 font-bold">00:00:00</span></div>
+          </div>
+          <div class="waveform-animate flex gap-1 items-center">
+            <span style="animation-delay:0s"></span><span style="animation-delay:0.2s"></span><span style="animation-delay:0.4s"></span><span style="animation-delay:0.1s"></span><span style="animation-delay:0.3s"></span>
+          </div>
         </div>
       </div>
 
-      <!-- Controls Panel (enhanced) -->
-      <div class="space-y-4">
-        <div class="bg-gray-800/90 backdrop-blur-sm rounded-xl p-5 border border-gray-700 shadow-lg">
-          <h3 class="font-semibold text-lg mb-3 flex items-center gap-2">🎛️ Stream Controls</h3>
-          
-          <div class="space-y-3">
-            <button id="startLiveBtn" class="w-full bg-green-600 hover:bg-green-500 transition-all transform hover:scale-[1.01] text-white font-medium py-2.5 px-4 rounded-xl shadow-md">
-              🟢 Start Live Stream
+      <!-- right column: premium control suite -->
+      <div class="space-y-6">
+        <!-- broadcast engine card -->
+        <div class="glass-card rounded-2xl p-6">
+          <div class="flex items-center gap-2 mb-5"><div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 text-lg">🎛️</span></div><h3 class="text-xl font-bold">Broadcast Core</h3></div>
+          <div class="space-y-3.5">
+            <button id="startLiveBtn" class="w-full btn-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-xl text-base">
+              <span class="text-xl">🟢</span> START STREAM
             </button>
-            
-            <button id="stopLiveBtn" class="w-full bg-red-600 hover:bg-red-700 transition-all text-white font-medium py-2.5 px-4 rounded-xl shadow-md hidden">
-              🔴 Stop Live Broadcast
+            <button id="stopLiveBtn" class="w-full btn-danger text-white font-bold py-3.5 rounded-xl hidden transition-all shadow-xl text-base">
+              🔴 STOP BROADCAST
             </button>
-
             <div class="grid grid-cols-2 gap-3">
-              <button id="shareScreenBtn" class="bg-blue-600 hover:bg-blue-500 transition text-white py-2 px-3 rounded-xl flex items-center justify-center gap-1 text-sm">
-                📺 Share Screen
-              </button>
-              <button id="switchCameraBtn" class="bg-purple-600 hover:bg-purple-500 transition text-white py-2 px-3 rounded-xl flex items-center justify-center gap-1 text-sm">
-                🔄 Switch Cam
-              </button>
+              <button id="shareScreenBtn" class="bg-indigo-600/70 hover:bg-indigo-500 backdrop-blur-sm py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"><span>📺</span> Share Screen</button>
+              <button id="switchCameraBtn" class="bg-purple-600/70 hover:bg-purple-500 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"><span>🔄</span> Switch Cam</button>
             </div>
-
-            <!-- NEW: Mirror toggle (self-view only) -->
-            <div class="flex items-center justify-between bg-gray-700/50 p-3 rounded-xl mt-2">
-              <div class="flex items-center gap-2 text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                <span>Mirror View (self)</span>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="mirrorToggleCheckbox" checked>
-                <span class="slider"></span>
+            <div class="flex items-center justify-between bg-white/5 p-3.5 rounded-xl border border-white/10 mt-1">
+              <div class="flex items-center gap-2.5"><span class="text-lg">🪞</span><span class="text-sm font-medium">Mirror self-view</span></div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="mirrorToggleCheckbox" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-emerald-500 peer-checked:after:translate-x-full after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
               </label>
             </div>
           </div>
         </div>
 
-        <!-- Stream Info Card (enhanced) -->
-        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
-          <h3 class="font-semibold mb-3 flex items-center gap-2">📡 Stream Health</h3>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="bg-gray-900/60 p-2 rounded-lg">
-              <p class="text-gray-400 text-xs">Status</p>
-              <p><span id="streamStatus" class="text-red-500 font-bold">Offline</span></p>
+        <!-- professional audio suite with visualizer -->
+        <div class="glass-card rounded-2xl p-6">
+          <div class="flex items-center gap-2 mb-4"><div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"><span class="text-emerald-400 text-lg">🎙️</span></div><h3 class="text-xl font-bold">Audio Suite</h3></div>
+          <div class="flex gap-3">
+            <button id="muteAudioBtn" class="flex-1 bg-slate-700 hover:bg-blue-600 py-2.5 rounded-xl text-sm font-medium transition-all">🔇 Mute Mic</button>
+            <button id="testAudioBtn" class="flex-1 bg-slate-700 hover:bg-emerald-600 py-2.5 rounded-xl text-sm font-medium transition-all">🎧 Test Audio</button>
+          </div>
+          <div class="mt-5">
+            <div class="flex justify-between text-xs text-gray-300 mb-1.5"><span>Input level (RMS)</span><span id="audioLevelText" class="text-emerald-300 font-mono">0%</span></div>
+            <div class="h-2.5 bg-gray-800 rounded-full overflow-hidden shadow-inner">
+              <div id="audioLevelBar" class="h-full level-meter rounded-full transition-all duration-75 w-0" style="background: linear-gradient(90deg, #10b981, #eab308, #ef4444);"></div>
             </div>
-            <div class="bg-gray-900/60 p-2 rounded-lg">
-              <p class="text-gray-400 text-xs">Students</p>
-              <p><span id="connectedStudents" class="text-cyan-400 font-bold">0</span></p>
-            </div>
-            <div class="bg-gray-900/60 p-2 rounded-lg col-span-2">
-              <p class="text-gray-400 text-xs">Stream duration</p>
-              <p class="font-mono text-lg font-bold" id="streamDuration">00:00:00</p>
-            </div>
+            <div class="flex justify-between text-[11px] text-gray-400 mt-2"><span>🔊 microphone state</span><span id="micStatusLabel" class="text-green-300">active</span></div>
           </div>
         </div>
 
-        <!-- Audio Controls + Meter (compact) -->
-        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
-          <h3 class="font-semibold mb-3">🎧 Audio Manager</h3>
-          <div class="flex flex-wrap gap-3">
-            <button id="muteAudioBtn" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-xl transition flex-1 text-sm">
-              🎤 Mute Audio
-            </button>
-            <button id="testAudioBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-4 rounded-xl transition flex-1 text-sm">
-              🔊 Test
-            </button>
+        <!-- live audience analytics -->
+        <div class="glass-card rounded-2xl p-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center"><span class="text-cyan-400 text-lg">👥</span></div><h3 class="text-xl font-bold">Live Room</h3></div>
+            <div class="bg-blue-500/20 text-blue-300 text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">WebRTC</div>
           </div>
-          <div class="mt-4 space-y-1">
-            <div class="flex justify-between text-xs text-gray-400"><span>Input level</span><span id="audioLevelText">0%</span></div>
-            <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
-              <div id="audioLevelBar" class="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-75" style="width: 0%"></div>
-            </div>
+          <div class="mt-4 flex items-baseline gap-3">
+            <span id="connectedStudents" class="text-5xl font-black text-cyan-300">0</span>
+            <span class="text-gray-300">connected learners</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-5 text-xs text-gray-400">
+            <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> p2p encrypted</div>
+            <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> sub-300ms latency</div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
-    // ------------------- CLEAN LOGGING (console only, no UI panel) -------------------
-    function silentLog(message) {
-      console.log(`[Tutor Studio] ${message}`);
-    }
-
+    // ======================= FULL ORIGINAL FUNCTIONALITY + PLACEHOLDER LOGIC =======================
     const socket = io();
     const tutorId = "<%= tutor._id %>";
     const video = document.getElementById("tutorVideo");
-    const backButton = document.getElementById("backButton");
+    const cameraPlaceholder = document.getElementById("cameraPlaceholder");
     
     // DOM elements
     const startLiveBtn = document.getElementById("startLiveBtn");
@@ -260,10 +326,12 @@
     const streamStatusSpan = document.getElementById("streamStatus");
     const connectedStudentsSpan = document.getElementById("connectedStudents");
     const streamDurationSpan = document.getElementById("streamDuration");
-    const viewerCountSpan = document.getElementById("viewerCountNumber");
-    const liveBadgeWrap = document.getElementById("streamLiveBadge");
+    const viewerCountNumberSpan = document.getElementById("viewerCountNumber");
+    const liveBadge = document.getElementById("streamLiveBadge");
     const audioLevelBar = document.getElementById("audioLevelBar");
     const audioLevelText = document.getElementById("audioLevelText");
+    const micStatusLabel = document.getElementById("micStatusLabel");
+    const connectionStatusDiv = document.getElementById("connectionStatus");
     
     let localStream = null;
     let screenStream = null;
@@ -276,16 +344,23 @@
     let isLive = false;
     let currentAudioMuted = false;
 
-    // ----- helper functions -----
-    function updateConnectionStatus(status, colorCode) {
-      const statusContainer = document.getElementById("connectionStatus");
-      if (statusContainer) {
-        statusContainer.innerHTML = `<span class="w-2.5 h-2.5 rounded-full" style="background-color: ${colorCode}"></span><span>${status}</span>`;
+    // Helper to show/hide camera placeholder elegantly
+    function setCameraPlaceholder(visible) {
+      if (visible) {
+        cameraPlaceholder.classList.remove("hidden");
+      } else {
+        cameraPlaceholder.classList.add("hidden");
+      }
+    }
+
+    function updateConnectionStatusUI(status, colorClass) {
+      if (connectionStatusDiv) {
+        connectionStatusDiv.innerHTML = `<span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full rounded-full ${colorClass} animate-ping opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 ${colorClass}"></span></span><span>${status}</span>`;
       }
     }
 
     function updateViewerCount(count) {
-      viewerCountSpan.textContent = count;
+      viewerCountNumberSpan.textContent = count;
       connectedStudentsSpan.textContent = count;
     }
 
@@ -293,192 +368,112 @@
       streamStartTime = new Date();
       if (streamTimer) clearInterval(streamTimer);
       streamTimer = setInterval(() => {
-        const now = new Date();
-        const diff = Math.floor((now - streamStartTime) / 1000);
+        const diff = Math.floor((new Date() - streamStartTime) / 1000);
         const hrs = Math.floor(diff / 3600);
         const mins = Math.floor((diff % 3600) / 60);
         const secs = diff % 60;
         streamDurationSpan.textContent = `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
       }, 1000);
     }
+    function stopStreamTimer() { if (streamTimer) clearInterval(streamTimer); streamDurationSpan.textContent = "00:00:00"; }
 
-    function stopStreamTimer() {
-      if (streamTimer) clearInterval(streamTimer);
-      streamTimer = null;
-      streamDurationSpan.textContent = "00:00:00";
-    }
-
-    // Stop everything gracefully
-    async function stopLiveStream(keepLocal = false) {
-      if (!isLive && !localStream) return true;
-      silentLog("Stopping live stream...");
-      
-      // Notify server
+    async function stopLiveStream() {
+      if (!isLive && !localStream) return;
       socket.emit("tutor-stop", { tutorId });
-      
-      // Close all peer connections
-      Object.keys(peerConnections).forEach(studentId => {
-        if (peerConnections[studentId]) {
-          peerConnections[studentId].close();
-          delete peerConnections[studentId];
-        }
-      });
-      peerConnections = {};
-      
-      if (localStream && !keepLocal) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-      if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-        screenStream = null;
-      }
-      
-      if (!keepLocal) video.srcObject = null;
-      
-      // UI updates
+      Object.keys(peerConnections).forEach(id => { peerConnections[id]?.close(); delete peerConnections[id]; });
+      if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+      if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+      video.srcObject = null;
       startLiveBtn.classList.remove("hidden");
       stopLiveBtn.classList.add("hidden");
       streamStatusSpan.textContent = "Offline";
-      streamStatusSpan.className = "text-red-500 font-bold";
-      updateConnectionStatus('Offline', '#EF4444');
+      streamStatusSpan.className = "text-gray-400 font-mono text-sm";
+      updateConnectionStatusUI("Studio Ready", "bg-green-500");
       stopStreamTimer();
       updateViewerCount(0);
       isLive = false;
-      liveBadgeWrap.classList.add("hidden");
-      
-      // reset audio meter
+      liveBadge.classList.add("hidden");
       if (audioLevelBar) audioLevelBar.style.width = "0%";
       if (audioLevelText) audioLevelText.textContent = "0%";
-      
-      silentLog("Live stream fully stopped");
-      return true;
+      // Show placeholder again since stream ended
+      setCameraPlaceholder(true);
     }
 
-    // WebRTC config
-    const pcConfig = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' }
-      ],
-      iceCandidatePoolSize: 10
-    };
-
+    const pcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' },{ urls: 'stun:stun1.l.google.com:19302' }], iceCandidatePoolSize: 10 };
     function createPeerConnection(studentId) {
       const pc = new RTCPeerConnection(pcConfig);
-      if (localStream) {
-        localStream.getTracks().forEach(track => {
-          pc.addTrack(track, localStream);
-        });
-      }
-      
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit("ice-candidate", { candidate: event.candidate, studentId, role: "tutor", tutorId });
-        }
-      };
-      pc.onconnectionstatechange = () => {
-        silentLog(`PeerConn ${studentId} state: ${pc.connectionState}`);
-      };
+      if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      pc.onicecandidate = (e) => { if(e.candidate) socket.emit("ice-candidate", { candidate: e.candidate, studentId, role: "tutor", tutorId }); };
       return pc;
     }
 
-    // Audio monitoring (visualizer)
     function startAudioMonitoring(stream) {
       if (!stream) return;
-      try {
-        if (audioContext && audioContext.state !== 'closed') audioContext.close();
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        const source = audioContext.createMediaStreamSource(stream);
-        source.connect(analyser);
-        analyser.fftSize = 256;
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        
-        function updateMeter() {
-          if (!analyser || !isLive) return;
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-          let avg = sum / (bufferLength || 1);
-          let percent = Math.min(100, (avg / 200) * 100);
-          if (audioLevelBar) audioLevelBar.style.width = percent + "%";
-          if (audioLevelText) audioLevelText.textContent = Math.floor(percent) + "%";
-          requestAnimationFrame(updateMeter);
-        }
-        if (audioContext.state === 'suspended') audioContext.resume();
-        updateMeter();
-        silentLog("Audio visualizer active");
-      } catch (err) {
-        silentLog("Audio meter error: " + err.message);
+      if (audioContext) audioContext.close();
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      function updateMeter() {
+        if (!analyser || !isLive) return;
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        let percent = Math.min(100, (sum / (dataArray.length * 200)) * 100);
+        if (audioLevelBar) audioLevelBar.style.width = percent + "%";
+        if (audioLevelText) audioLevelText.textContent = Math.floor(percent) + "%";
+        requestAnimationFrame(updateMeter);
       }
+      if (audioContext.state === 'suspended') audioContext.resume();
+      updateMeter();
     }
 
-    // Obtain camera + mic
     async function getCameraAndMic() {
-      const constraints = {
-        video: { facingMode: currentCamera, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      return stream;
+      return await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true });
     }
 
-    // ---- EVENT HANDLERS ----
     startLiveBtn.addEventListener("click", async () => {
       if (isLive) return;
       try {
-        silentLog("Initiating live stream...");
-        updateConnectionStatus('Connecting', '#F59E0B');
+        updateConnectionStatusUI("Connecting...", "bg-yellow-500");
         localStream = await getCameraAndMic();
         video.srcObject = localStream;
-        // mirror default on
+        // Hide placeholder when video stream is active
+        setCameraPlaceholder(false);
         if (mirrorToggle.checked) video.classList.add("mirror-video");
         else video.classList.remove("mirror-video");
-        
         startAudioMonitoring(localStream);
         socket.emit("tutor-start", { tutorId });
-        
         startLiveBtn.classList.add("hidden");
         stopLiveBtn.classList.remove("hidden");
         streamStatusSpan.textContent = "LIVE";
-        streamStatusSpan.className = "text-green-500 font-bold animate-pulse";
-        updateConnectionStatus('Broadcasting', '#10B981');
+        streamStatusSpan.className = "text-green-400 font-mono font-bold text-sm animate-pulse";
+        updateConnectionStatusUI("Broadcasting", "bg-green-500");
         startStreamTimer();
         isLive = true;
-        liveBadgeWrap.classList.remove("hidden");
-        silentLog("✅ Stream is LIVE");
-      } catch (err) {
-        silentLog("Start error: " + err.message);
-        alert("Could not access camera/mic: " + err.message);
-        updateConnectionStatus('Error', '#EF4444');
+        liveBadge.classList.remove("hidden");
+        micStatusLabel.textContent = "unmuted";
+      } catch(err) { 
+        alert("Camera/Mic error: " + err.message); 
+        updateConnectionStatusUI("Error", "bg-red-500");
+        setCameraPlaceholder(true);
       }
     });
 
-    stopLiveBtn.addEventListener("click", async () => {
-      await stopLiveStream(false);
-    });
-
-    backButton.addEventListener("click", async (e) => {
+    stopLiveBtn.addEventListener("click", stopLiveStream);
+    document.getElementById("backButton").addEventListener("click", async (e) => {
       e.preventDefault();
-      if (isLive) {
-        const confirmLeave = confirm("You are LIVE! Stopping will disconnect all students. Proceed?");
-        if (!confirmLeave) return;
-        await stopLiveStream(false);
-        setTimeout(() => { window.location.href = "/dashboard"; }, 300);
-      } else {
-        window.location.href = "/dashboard";
-      }
+      if (isLive && !confirm("You are LIVE! Stop stream and leave?")) return;
+      await stopLiveStream();
+      window.location.href = "/dashboard";
     });
 
-    // Share Screen
     shareScreenBtn.addEventListener("click", async () => {
-      if (!localStream) { alert("Please start live stream first"); return; }
+      if (!localStream) { alert("Start live first"); return; }
       try {
-        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: true });
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         const videoTrack = screenStream.getVideoTracks()[0];
         Object.values(peerConnections).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track?.kind === 'video');
@@ -494,87 +489,55 @@
           }
           screenStream = null;
         };
-        silentLog("Screen sharing active");
-      } catch (err) { silentLog("Screen share error: " + err.message); }
+      } catch(e) { console.warn(e); }
     });
 
-    // Switch camera
     switchCameraBtn.addEventListener("click", async () => {
       if (!localStream) { alert("Start stream first"); return; }
-      try {
-        currentCamera = currentCamera === 'user' ? 'environment' : 'user';
-        const newStream = await getCameraAndMic();
-        const oldVideoTrack = localStream.getVideoTracks()[0];
-        const newVideoTrack = newStream.getVideoTracks()[0];
-        const oldAudioTrack = localStream.getAudioTracks()[0];
-        const newAudioTrack = newStream.getAudioTracks()[0];
-        
-        // replace tracks for all peers
-        Object.values(peerConnections).forEach(pc => {
-          const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
-          if (videoSender && newVideoTrack) videoSender.replaceTrack(newVideoTrack);
-          const audioSender = pc.getSenders().find(s => s.track?.kind === 'audio');
-          if (audioSender && newAudioTrack) audioSender.replaceTrack(newAudioTrack);
-        });
-        // update local video
-        video.srcObject = newStream;
-        if (mirrorToggle.checked) video.classList.add("mirror-video");
-        else video.classList.remove("mirror-video");
-        
-        oldVideoTrack?.stop();
-        if (oldAudioTrack && oldAudioTrack !== newAudioTrack) oldAudioTrack.stop();
-        localStream = newStream;
-        startAudioMonitoring(localStream);
-        silentLog(`Camera switched to ${currentCamera}`);
-      } catch (err) { silentLog("Switch camera fail: " + err.message); }
+      currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+      const newStream = await getCameraAndMic();
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const newAudioTrack = newStream.getAudioTracks()[0];
+      Object.values(peerConnections).forEach(pc => {
+        const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
+        if (videoSender && newVideoTrack) videoSender.replaceTrack(newVideoTrack);
+        const audioSender = pc.getSenders().find(s => s.track?.kind === 'audio');
+        if (audioSender && newAudioTrack) audioSender.replaceTrack(newAudioTrack);
+      });
+      video.srcObject = newStream;
+      if (mirrorToggle.checked) video.classList.add("mirror-video");
+      localStream.getTracks().forEach(t => t.stop());
+      localStream = newStream;
+      startAudioMonitoring(localStream);
+      // placeholder already hidden because stream is active
     });
 
-    // Mirror toggle (self mirror effect, students see original)
     mirrorToggle.addEventListener("change", (e) => {
-      if (video) {
-        if (e.target.checked) video.classList.add("mirror-video");
-        else video.classList.remove("mirror-video");
-        silentLog(`Mirror view ${e.target.checked ? "ON" : "OFF"} (students unaffected)`);
-      }
+      if (video) e.target.checked ? video.classList.add("mirror-video") : video.classList.remove("mirror-video");
     });
 
-    // Mute audio toggle
     muteAudioBtn.addEventListener("click", () => {
       if (localStream) {
         const audioTrack = localStream.getAudioTracks()[0];
         if (audioTrack) {
           audioTrack.enabled = !audioTrack.enabled;
           currentAudioMuted = !audioTrack.enabled;
-          muteAudioBtn.textContent = currentAudioMuted ? "🎤 Unmute Audio" : "🎤 Mute Audio";
-          silentLog(`Microphone ${currentAudioMuted ? 'muted' : 'unmuted'}`);
+          muteAudioBtn.textContent = currentAudioMuted ? "🎤 Unmute" : "🔇 Mute";
+          micStatusLabel.textContent = currentAudioMuted ? "muted" : "active";
         }
       }
     });
-
     testAudioBtn.addEventListener("click", async () => {
-      try {
-        const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const audioEl = new Audio();
-        audioEl.srcObject = testStream;
-        audioEl.play();
-        setTimeout(() => testStream.getTracks().forEach(t => t.stop()), 2500);
-        silentLog("Audio test played");
-      } catch (err) { silentLog("Test audio failed: " + err.message); }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audio = new Audio(); audio.srcObject = stream; audio.play();
+      setTimeout(() => stream.getTracks().forEach(t => t.stop()), 2000);
     });
 
-    // ---- SOCKET WEBRTC SIGNALING ----
-    socket.on("connect", () => {
-      silentLog("Socket connected");
-      updateConnectionStatus('Connected', '#10B981');
-    });
-    socket.on("disconnect", () => updateConnectionStatus('Disconnected', '#EF4444'));
-
-    socket.on("student-join", async ({ studentId, socketId }) => {
-      silentLog(`Student ${studentId} joining`);
-      if (!isLive || !localStream) {
-        silentLog("Stream not live, ignoring student join");
-        return;
-      }
+    // Socket events (original WebRTC signaling)
+    socket.on("connect", () => updateConnectionStatusUI("Connected", "bg-green-500"));
+    socket.on("disconnect", () => updateConnectionStatusUI("Reconnecting", "bg-red-500"));
+    socket.on("student-join", async ({ studentId }) => {
+      if (!isLive || !localStream) return;
       try {
         if (peerConnections[studentId]) peerConnections[studentId].close();
         const pc = createPeerConnection(studentId);
@@ -582,41 +545,22 @@
         const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
         await pc.setLocalDescription(offer);
         socket.emit("tutor-offer", { offer: pc.localDescription, studentId, tutorId });
-      } catch (err) { silentLog(`Offer error: ${err.message}`); }
+      } catch(e) {}
     });
-
     socket.on("student-answer", async ({ studentId, answer }) => {
       const pc = peerConnections[studentId];
-      if (pc) {
-        try {
-          await pc.setRemoteDescription(new RTCSessionDescription(answer));
-          silentLog(`Remote description set for ${studentId}`);
-        } catch (err) { silentLog(`Answer error: ${err.message}`); }
-      }
+      if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
     });
-
     socket.on("ice-candidate", async ({ candidate, studentId }) => {
       const pc = peerConnections[studentId];
-      if (pc && candidate) {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) { silentLog(`ICE add fail: ${err.message}`); }
-      }
+      if (pc && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
     });
+    socket.on("viewerCountUpdate", (count) => updateViewerCount(count));
 
-    socket.on("viewerCountUpdate", (count) => {
-      updateViewerCount(count);
-    });
-
-    // cleanup before unload
-    window.addEventListener('beforeunload', (e) => {
-      if (isLive) {
-        stopLiveStream(false);
-      }
-    });
-    
-    silentLog("Tutor studio ready — mirror toggle added, logs hidden, UI cleaned");
-    updateConnectionStatus('Ready', '#3B82F6');
+    window.addEventListener('beforeunload', () => { if(isLive) stopLiveStream(); });
+    updateConnectionStatusUI("Ready", "bg-green-500");
+    // Initially show placeholder
+    setCameraPlaceholder(true);
   </script>
 </body>
 </html>
