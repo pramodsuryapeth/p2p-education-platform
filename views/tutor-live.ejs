@@ -2,69 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tutor Live Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Tutor Live Studio | Stream & Interact</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .status-online { color: #10B981; }
-    .status-offline { color: #EF4444; }
+    /* custom pulse & live badge animations */
     .live-pulse {
-      animation: pulse 2s infinite;
+      animation: pulse-ring 1.5s infinite;
     }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
-    /* Add mirror video CSS */
+    .live-badge {
+      background: #dc2626;
+      color: white;
+      font-weight: bold;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 5px rgba(220,38,38,0.5);
+    }
+    .live-badge::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      animation: blink-live 1s step-end infinite;
+    }
+    @keyframes blink-live {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
     .mirror-video {
       transform: scaleX(-1);
       -webkit-transform: scaleX(-1);
       -moz-transform: scaleX(-1);
       -ms-transform: scaleX(-1);
     }
+    .quality-badge {
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      font-size: 0.7rem;
+    }
+    /* custom toggle switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #4B5563;
+      transition: 0.2s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #10B981;
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
-  <!-- Header with Back Button -->
-  <header class="bg-gray-800 shadow-lg">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-      <!-- Left side: Back Button -->
+  <!-- Header with Back Button + Live Status -->
+  <header class="bg-gray-800 shadow-lg border-b border-gray-700">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
+      <!-- Back button -->
       <a href="/dashboard" 
          id="backButton"
-         class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200">
+         class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-200 shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
         </svg>
-        <span class="font-medium">Back to Dashboard</span>
+        <span class="font-medium">Dashboard</span>
       </a>
       
-      <!-- Right side: Live Status -->
+      <!-- Right: live indicator & viewer count -->
       <div class="flex items-center space-x-4">
-        <div id="connectionStatus" class="flex items-center space-x-2">
-          <span class="w-3 h-3 bg-red-500 rounded-full"></span>
-          <span>Connecting...</span>
+        <div id="liveIndicatorWrap" class="flex items-center space-x-2">
+          <div id="connectionStatus" class="flex items-center space-x-2 bg-gray-700/50 px-3 py-1 rounded-full text-sm">
+            <span class="w-2.5 h-2.5 bg-gray-400 rounded-full"></span>
+            <span>Ready</span>
+          </div>
         </div>
-        <div id="viewerCount" class="bg-gray-700 px-3 py-1 rounded">
-          Viewers: <span>0</span>
+        <div id="viewerCount" class="bg-gray-700 px-3 py-1 rounded-full text-sm font-mono shadow-inner">
+          👥 Viewers: <span id="viewerCountNumber">0</span>
         </div>
       </div>
     </div>
   </header>
 
-  <div class="container mx-auto p-6">
-    <!-- Page Title -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold">🎥 Live Studio - <%= tutor.name %></h1>
-      <p class="text-gray-400 mt-2">Manage your live stream and interact with students</p>
+  <div class="container mx-auto p-4 md:p-6">
+    <!-- Page Title & tutor name -->
+    <div class="mb-5 flex flex-wrap justify-between items-center">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">🎙️ Live Studio</h1>
+        <p class="text-gray-400 text-sm mt-1"><%= tutor.name %> · educator dashboard</p>
+      </div>
+      <div id="streamLiveBadge" class="hidden">
+        <div class="live-badge">LIVE</div>
+      </div>
     </div>
 
-    <!-- Video Area -->
+    <!-- Video + Controls Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Main Video -->
-      <div class="lg:col-span-2 bg-black rounded-lg overflow-hidden relative">
-        <!-- Video with mirror class -->
+      <!-- Main Video Area -->
+      <div class="lg:col-span-2 bg-black rounded-xl overflow-hidden relative shadow-2xl border border-gray-700">
         <video 
           id="tutorVideo" 
           autoplay 
@@ -72,97 +147,123 @@
           playsinline 
           class="w-full h-64 lg:h-96 object-cover mirror-video"
         ></video>
-        <!-- Mirror indicator -->
-        <div class="absolute bottom-4 left-4 text-xs text-white bg-black bg-opacity-70 px-3 py-1 rounded-full">
-          <i class="fas fa-sync-alt mr-1"></i> Mirrored View
+        
+        <!-- Floating quality indicator (new) -->
+        <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+          <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+          <span id="videoQualityHint">HD ready</span>
         </div>
-        <div class="p-4">
-          <p class="text-sm text-gray-400">Your camera preview (mirrored for natural viewing)</p>
+        
+        <!-- Small camera label (new) -->
+        <div class="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-[11px] px-2 py-1 rounded-full">
+          📹 Tutor feed
         </div>
       </div>
 
-      <!-- Controls -->
+      <!-- Controls Panel (enhanced) -->
       <div class="space-y-4">
-        <div class="bg-gray-800 rounded-lg p-4">
-          <h3 class="font-semibold mb-3">Live Controls</h3>
+        <div class="bg-gray-800/90 backdrop-blur-sm rounded-xl p-5 border border-gray-700 shadow-lg">
+          <h3 class="font-semibold text-lg mb-3 flex items-center gap-2">🎛️ Stream Controls</h3>
           
           <div class="space-y-3">
-            <button 
-              id="startLiveBtn" 
-              class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition"
-            >
+            <button id="startLiveBtn" class="w-full bg-green-600 hover:bg-green-500 transition-all transform hover:scale-[1.01] text-white font-medium py-2.5 px-4 rounded-xl shadow-md">
               🟢 Start Live Stream
             </button>
             
-            <button 
-              id="stopLiveBtn" 
-              class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition hidden"
-            >
-              🔴 Stop Live
+            <button id="stopLiveBtn" class="w-full bg-red-600 hover:bg-red-700 transition-all text-white font-medium py-2.5 px-4 rounded-xl shadow-md hidden">
+              🔴 Stop Live Broadcast
             </button>
 
-            <button 
-              id="shareScreenBtn" 
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition"
-            >
-              📺 Share Screen
-            </button>
+            <div class="grid grid-cols-2 gap-3">
+              <button id="shareScreenBtn" class="bg-blue-600 hover:bg-blue-500 transition text-white py-2 px-3 rounded-xl flex items-center justify-center gap-1 text-sm">
+                📺 Share Screen
+              </button>
+              <button id="switchCameraBtn" class="bg-purple-600 hover:bg-purple-500 transition text-white py-2 px-3 rounded-xl flex items-center justify-center gap-1 text-sm">
+                🔄 Switch Cam
+              </button>
+            </div>
 
-            <button 
-              id="switchCameraBtn" 
-              class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition"
-            >
-              🔄 Switch Camera
-            </button>
+            <!-- NEW: Mirror toggle (self-view only) -->
+            <div class="flex items-center justify-between bg-gray-700/50 p-3 rounded-xl mt-2">
+              <div class="flex items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                <span>Mirror View (self)</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="mirrorToggleCheckbox" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <!-- Stream Info -->
-        <div class="bg-gray-800 rounded-lg p-4">
-          <h3 class="font-semibold mb-2">Stream Information</h3>
-          <div class="text-sm space-y-1">
-            <p>Status: <span id="streamStatus" class="text-red-500">Offline</span></p>
-            <p>Students connected: <span id="connectedStudents">0</span></p>
-            <p>Duration: <span id="streamDuration">00:00:00</span></p>
+        <!-- Stream Info Card (enhanced) -->
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <h3 class="font-semibold mb-3 flex items-center gap-2">📡 Stream Health</h3>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="bg-gray-900/60 p-2 rounded-lg">
+              <p class="text-gray-400 text-xs">Status</p>
+              <p><span id="streamStatus" class="text-red-500 font-bold">Offline</span></p>
+            </div>
+            <div class="bg-gray-900/60 p-2 rounded-lg">
+              <p class="text-gray-400 text-xs">Students</p>
+              <p><span id="connectedStudents" class="text-cyan-400 font-bold">0</span></p>
+            </div>
+            <div class="bg-gray-900/60 p-2 rounded-lg col-span-2">
+              <p class="text-gray-400 text-xs">Stream duration</p>
+              <p class="font-mono text-lg font-bold" id="streamDuration">00:00:00</p>
+            </div>
           </div>
         </div>
 
-        <!-- Audio Controls -->
-        <div class="bg-gray-800 rounded-lg p-4">
-          <h3 class="font-semibold mb-3">Audio Controls</h3>
-          <div class="flex space-x-4">
-            <button id="muteAudioBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+        <!-- Audio Controls + Meter (compact) -->
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <h3 class="font-semibold mb-3">🎧 Audio Manager</h3>
+          <div class="flex flex-wrap gap-3">
+            <button id="muteAudioBtn" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-xl transition flex-1 text-sm">
               🎤 Mute Audio
             </button>
-            <button id="testAudioBtn" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition">
-              🔊 Test Audio
+            <button id="testAudioBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-4 rounded-xl transition flex-1 text-sm">
+              🔊 Test
             </button>
           </div>
-          <div id="audioLevel" class="flex items-center space-x-2 mt-3">
-            <div class="w-32 h-2 bg-gray-700 rounded-full">
-              <div id="audioLevelBar" class="h-full bg-green-500 rounded-full" style="width: 0%"></div>
+          <div class="mt-4 space-y-1">
+            <div class="flex justify-between text-xs text-gray-400"><span>Input level</span><span id="audioLevelText">0%</span></div>
+            <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div id="audioLevelBar" class="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-75" style="width: 0%"></div>
             </div>
-            <span id="audioLevelText" class="text-xs">0%</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Debug Info -->
-    <div class="mt-6 bg-gray-800 rounded-lg p-4">
-      <h3 class="font-semibold mb-2">Debug Information</h3>
-      <div id="debugInfo" class="text-sm font-mono bg-black p-2 rounded max-h-32 overflow-y-auto">
-        <!-- Debug messages will appear here -->
       </div>
     </div>
   </div>
 
   <script>
+    // ------------------- CLEAN LOGGING (console only, no UI panel) -------------------
+    function silentLog(message) {
+      console.log(`[Tutor Studio] ${message}`);
+    }
+
     const socket = io();
     const tutorId = "<%= tutor._id %>";
     const video = document.getElementById("tutorVideo");
-    const debugInfo = document.getElementById("debugInfo");
     const backButton = document.getElementById("backButton");
+    
+    // DOM elements
+    const startLiveBtn = document.getElementById("startLiveBtn");
+    const stopLiveBtn = document.getElementById("stopLiveBtn");
+    const shareScreenBtn = document.getElementById("shareScreenBtn");
+    const switchCameraBtn = document.getElementById("switchCameraBtn");
+    const muteAudioBtn = document.getElementById("muteAudioBtn");
+    const testAudioBtn = document.getElementById("testAudioBtn");
+    const mirrorToggle = document.getElementById("mirrorToggleCheckbox");
+    const streamStatusSpan = document.getElementById("streamStatus");
+    const connectedStudentsSpan = document.getElementById("connectedStudents");
+    const streamDurationSpan = document.getElementById("streamDuration");
+    const viewerCountSpan = document.getElementById("viewerCountNumber");
+    const liveBadgeWrap = document.getElementById("streamLiveBadge");
+    const audioLevelBar = document.getElementById("audioLevelBar");
+    const audioLevelText = document.getElementById("audioLevelText");
     
     let localStream = null;
     let screenStream = null;
@@ -173,96 +274,88 @@
     let audioContext = null;
     let analyser = null;
     let isLive = false;
+    let currentAudioMuted = false;
 
-    // Debug logging
-    function debugLog(message) {
-      const timestamp = new Date().toLocaleTimeString();
-      const logEntry = `[${timestamp}] ${message}`;
-      debugInfo.innerHTML += logEntry + '<br>';
-      debugInfo.scrollTop = debugInfo.scrollHeight;
-      console.log(logEntry);
+    // ----- helper functions -----
+    function updateConnectionStatus(status, colorCode) {
+      const statusContainer = document.getElementById("connectionStatus");
+      if (statusContainer) {
+        statusContainer.innerHTML = `<span class="w-2.5 h-2.5 rounded-full" style="background-color: ${colorCode}"></span><span>${status}</span>`;
+      }
     }
 
-    // Update connection status
-    function updateConnectionStatus(status, color) {
-      const statusElement = document.getElementById('connectionStatus');
-      statusElement.innerHTML = `
-        <span class="w-3 h-3 rounded-full" style="background-color: ${color}"></span>
-        <span>${status}</span>
-      `;
-    }
-
-    // Update viewer count
     function updateViewerCount(count) {
-      document.querySelector('#viewerCount span').textContent = count;
-      document.getElementById('connectedStudents').textContent = count;
+      viewerCountSpan.textContent = count;
+      connectedStudentsSpan.textContent = count;
     }
 
-    // Start stream timer
     function startStreamTimer() {
       streamStartTime = new Date();
+      if (streamTimer) clearInterval(streamTimer);
       streamTimer = setInterval(() => {
         const now = new Date();
         const diff = Math.floor((now - streamStartTime) / 1000);
-        const hours = Math.floor(diff / 3600);
-        const minutes = Math.floor((diff % 3600) / 60);
-        const seconds = diff % 60;
-        
-        document.getElementById('streamDuration').textContent = 
-          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const hrs = Math.floor(diff / 3600);
+        const mins = Math.floor((diff % 3600) / 60);
+        const secs = diff % 60;
+        streamDurationSpan.textContent = `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
       }, 1000);
     }
 
-    // Stop stream timer
     function stopStreamTimer() {
-      if (streamTimer) {
-        clearInterval(streamTimer);
-        streamTimer = null;
-      }
-      document.getElementById('streamDuration').textContent = '00:00:00';
+      if (streamTimer) clearInterval(streamTimer);
+      streamTimer = null;
+      streamDurationSpan.textContent = "00:00:00";
     }
 
-    // Stop Live Stream Function
-    async function stopLiveStream() {
-      if (!isLive) return;
-      
-      debugLog("Stopping live stream via back button...");
-      
-      // Stop all tracks
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-      if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-      }
-      
-      // Close all peer connections
-      Object.values(peerConnections).forEach(pc => pc.close());
-      peerConnections = {};
-      
-      // Clear video
-      video.srcObject = null;
+    // Stop everything gracefully
+    async function stopLiveStream(keepLocal = false) {
+      if (!isLive && !localStream) return true;
+      silentLog("Stopping live stream...");
       
       // Notify server
       socket.emit("tutor-stop", { tutorId });
       
-      // Update UI
-      document.getElementById("startLiveBtn").classList.remove('hidden');
-      document.getElementById("stopLiveBtn").classList.add('hidden');
-      document.getElementById("streamStatus").textContent = "Offline";
-      document.getElementById("streamStatus").className = "text-red-500";
+      // Close all peer connections
+      Object.keys(peerConnections).forEach(studentId => {
+        if (peerConnections[studentId]) {
+          peerConnections[studentId].close();
+          delete peerConnections[studentId];
+        }
+      });
+      peerConnections = {};
       
+      if (localStream && !keepLocal) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        screenStream = null;
+      }
+      
+      if (!keepLocal) video.srcObject = null;
+      
+      // UI updates
+      startLiveBtn.classList.remove("hidden");
+      stopLiveBtn.classList.add("hidden");
+      streamStatusSpan.textContent = "Offline";
+      streamStatusSpan.className = "text-red-500 font-bold";
       updateConnectionStatus('Offline', '#EF4444');
       stopStreamTimer();
       updateViewerCount(0);
       isLive = false;
+      liveBadgeWrap.classList.add("hidden");
       
-      debugLog("Live stream stopped");
+      // reset audio meter
+      if (audioLevelBar) audioLevelBar.style.width = "0%";
+      if (audioLevelText) audioLevelText.textContent = "0%";
       
+      silentLog("Live stream fully stopped");
       return true;
     }
 
-    // Enhanced ICE servers configuration
+    // WebRTC config
     const pcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -273,403 +366,257 @@
       iceCandidatePoolSize: 10
     };
 
-    // Get user media
-    async function getUserMedia(constraints) {
-      try {
-        debugLog(`Getting user media with constraints: ${JSON.stringify(constraints)}`);
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        debugLog('Successfully obtained user media');
-        return stream;
-      } catch (error) {
-        debugLog(`Error getting user media: ${error.message}`);
-        throw error;
-      }
-    }
-
-    // Create peer connection for a student
     function createPeerConnection(studentId) {
-      debugLog(`Creating peer connection for student: ${studentId}`);
-      
       const pc = new RTCPeerConnection(pcConfig);
-
-      // Add local tracks to peer connection (NOT mirrored for students)
       if (localStream) {
         localStream.getTracks().forEach(track => {
-          debugLog(`Adding ${track.kind} track to peer connection`);
-          // IMPORTANT: Send non-mirrored stream to students
           pc.addTrack(track, localStream);
         });
       }
-
-      // Handle ICE candidates
+      
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          debugLog(`Sending ICE candidate to student ${studentId}`);
-          socket.emit("ice-candidate", { 
-            candidate: event.candidate, 
-            studentId: studentId, 
-            role: "tutor",
-            tutorId: tutorId
-          });
+          socket.emit("ice-candidate", { candidate: event.candidate, studentId, role: "tutor", tutorId });
         }
       };
-
-      // Handle connection state changes
       pc.onconnectionstatechange = () => {
-        const state = pc.connectionState;
-        debugLog(`Peer connection state for ${studentId}: ${state}`);
-        
-        if (state === 'connected') {
-          debugLog(`🎉 Successfully connected to student ${studentId}`);
-        } else if (state === 'failed') {
-          debugLog(`❌ Connection failed for student ${studentId}`);
-        }
+        silentLog(`PeerConn ${studentId} state: ${pc.connectionState}`);
       };
-
-      pc.oniceconnectionstatechange = () => {
-        const state = pc.iceConnectionState;
-        debugLog(`ICE connection state for ${studentId}: ${state}`);
-        
-        if (state === 'connected') {
-          debugLog(`✅ ICE connected for ${studentId}`);
-        } else if (state === 'failed') {
-          debugLog(`❌ ICE failed for ${studentId}`);
-        }
-      };
-
       return pc;
     }
 
-    // Start audio monitoring
-    function startAudioMonitoring() {
-      if (!localStream) return;
-      
+    // Audio monitoring (visualizer)
+    function startAudioMonitoring(stream) {
+      if (!stream) return;
       try {
+        if (audioContext && audioContext.state !== 'closed') audioContext.close();
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
-        const microphone = audioContext.createMediaStreamSource(localStream);
-        const javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
-
-        analyser.smoothingTimeConstant = 0.8;
-        analyser.fftSize = 1024;
-
-        microphone.connect(analyser);
-        analyser.connect(javascriptNode);
-        javascriptNode.connect(audioContext.destination);
-
-        javascriptNode.onaudioprocess = function() {
-          const array = new Uint8Array(analyser.frequencyBinCount);
-          analyser.getByteFrequencyData(array);
-          const values = array.reduce((a, b) => a + b);
-          const average = values / array.length;
-          const percentage = Math.min(100, (average / 256) * 100);
-          
-          document.getElementById("audioLevelBar").style.width = percentage + '%';
-          document.getElementById("audioLevelText").textContent = Math.round(percentage) + '%';
-        };
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
         
-        debugLog("Audio monitoring started");
-      } catch (error) {
-        debugLog(`Audio monitoring failed: ${error.message}`);
+        function updateMeter() {
+          if (!analyser || !isLive) return;
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
+          let avg = sum / (bufferLength || 1);
+          let percent = Math.min(100, (avg / 200) * 100);
+          if (audioLevelBar) audioLevelBar.style.width = percent + "%";
+          if (audioLevelText) audioLevelText.textContent = Math.floor(percent) + "%";
+          requestAnimationFrame(updateMeter);
+        }
+        if (audioContext.state === 'suspended') audioContext.resume();
+        updateMeter();
+        silentLog("Audio visualizer active");
+      } catch (err) {
+        silentLog("Audio meter error: " + err.message);
       }
     }
 
-    // Start Live Stream
-    document.getElementById("startLiveBtn").addEventListener("click", async () => {
+    // Obtain camera + mic
+    async function getCameraAndMic() {
+      const constraints = {
+        video: { facingMode: currentCamera, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      return stream;
+    }
+
+    // ---- EVENT HANDLERS ----
+    startLiveBtn.addEventListener("click", async () => {
+      if (isLive) return;
       try {
-        debugLog("Starting live stream...");
+        silentLog("Initiating live stream...");
         updateConnectionStatus('Connecting', '#F59E0B');
-
-        // Get camera and microphone access
-        localStream = await getUserMedia({ 
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 } 
-          }, 
-          audio: true 
-        });
-
-        // Display local video with mirror effect (self-view)
+        localStream = await getCameraAndMic();
         video.srcObject = localStream;
-        video.classList.add('mirror-video'); // Ensure mirror class is applied
+        // mirror default on
+        if (mirrorToggle.checked) video.classList.add("mirror-video");
+        else video.classList.remove("mirror-video");
         
-        // Start audio monitoring
-        startAudioMonitoring();
-        
-        // Notify server that tutor is starting stream
+        startAudioMonitoring(localStream);
         socket.emit("tutor-start", { tutorId });
         
-        // Update UI
-        document.getElementById("startLiveBtn").classList.add('hidden');
-        document.getElementById("stopLiveBtn").classList.remove('hidden');
-        document.getElementById("streamStatus").textContent = "Live";
-        document.getElementById("streamStatus").className = "text-green-500";
-        
-        updateConnectionStatus('Live', '#10B981');
+        startLiveBtn.classList.add("hidden");
+        stopLiveBtn.classList.remove("hidden");
+        streamStatusSpan.textContent = "LIVE";
+        streamStatusSpan.className = "text-green-500 font-bold animate-pulse";
+        updateConnectionStatus('Broadcasting', '#10B981');
         startStreamTimer();
         isLive = true;
-        
-        debugLog("Live stream started successfully");
-        debugLog("Note: Your self-view is mirrored (like looking in a mirror)");
-        debugLog("Students will see a non-mirrored view of you");
-
-      } catch (error) {
-        debugLog(`Failed to start live stream: ${error.message}`);
-        alert(`Failed to start live stream: ${error.message}`);
+        liveBadgeWrap.classList.remove("hidden");
+        silentLog("✅ Stream is LIVE");
+      } catch (err) {
+        silentLog("Start error: " + err.message);
+        alert("Could not access camera/mic: " + err.message);
         updateConnectionStatus('Error', '#EF4444');
       }
     });
 
-    // Stop Live Stream Button
-    document.getElementById("stopLiveBtn").addEventListener("click", async () => {
-      await stopLiveStream();
+    stopLiveBtn.addEventListener("click", async () => {
+      await stopLiveStream(false);
     });
 
-    // Back Button Handler
     backButton.addEventListener("click", async (e) => {
       e.preventDefault();
-      
       if (isLive) {
-        const confirmed = confirm("You are currently live! Stopping the stream will disconnect all students. Are you sure you want to go back?");
-        if (!confirmed) {
-          return;
-        }
-        
-        // Stop the live stream
-        await stopLiveStream();
-        
-        // Short delay to ensure stream is properly stopped
-        setTimeout(() => {
-          window.location.href = "/dashboard";
-        }, 500);
+        const confirmLeave = confirm("You are LIVE! Stopping will disconnect all students. Proceed?");
+        if (!confirmLeave) return;
+        await stopLiveStream(false);
+        setTimeout(() => { window.location.href = "/dashboard"; }, 300);
       } else {
-        // If not live, just navigate back
         window.location.href = "/dashboard";
       }
     });
 
     // Share Screen
-    document.getElementById("shareScreenBtn").addEventListener("click", async () => {
+    shareScreenBtn.addEventListener("click", async () => {
+      if (!localStream) { alert("Please start live stream first"); return; }
       try {
-        debugLog("Starting screen share...");
-        
-        screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: 'always' },
-          audio: true
-        });
-
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: true });
         const videoTrack = screenStream.getVideoTracks()[0];
-        
-        // Replace video track in all peer connections
-        Object.entries(peerConnections).forEach(([studentId, pc]) => {
-          const senders = pc.getSenders();
-          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-          
-          if (videoSender) {
-            videoSender.replaceTrack(videoTrack).then(() => {
-              debugLog(`✅ Screen share track replaced for student ${studentId}`);
-            }).catch(error => {
-              debugLog(`❌ Error replacing screen share for ${studentId}: ${error.message}`);
-            });
-          }
-        });
-
-        // Handle screen share ending
-        videoTrack.onended = () => {
-          debugLog("Screen share ended");
-          if (localStream) {
-            const cameraTrack = localStream.getVideoTracks()[0];
-            Object.entries(peerConnections).forEach(([studentId, pc]) => {
-              const senders = pc.getSenders();
-              const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-              if (videoSender && cameraTrack) {
-                videoSender.replaceTrack(cameraTrack);
-              }
-            });
-          }
-        };
-
-        debugLog("✅ Screen share started successfully");
-
-      } catch (error) {
-        debugLog(`❌ Screen share failed: ${error.message}`);
-      }
-    });
-
-    // Switch Camera
-    document.getElementById("switchCameraBtn").addEventListener("click", async () => {
-      try {
-        debugLog("Switching camera...");
-        
-        if (localStream) {
-          localStream.getTracks().forEach(track => track.stop());
-        }
-
-        currentCamera = currentCamera === 'user' ? 'environment' : 'user';
-        
-        localStream = await getUserMedia({ 
-          video: { 
-            facingMode: currentCamera,
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }, 
-          audio: true 
-        });
-
-        video.srcObject = localStream;
-        video.classList.add('mirror-video'); // Re-apply mirror effect
-
-        // Update all peer connections with new tracks
         Object.values(peerConnections).forEach(pc => {
-          const senders = pc.getSenders();
-          
-          localStream.getTracks().forEach(track => {
-            const sender = senders.find(s => 
-              s.track && s.track.kind === track.kind
-            );
-            if (sender) {
-              sender.replaceTrack(track);
-            }
-          });
+          const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) sender.replaceTrack(videoTrack);
         });
+        videoTrack.onended = () => {
+          if (localStream) {
+            const camTrack = localStream.getVideoTracks()[0];
+            Object.values(peerConnections).forEach(pc => {
+              const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+              if (sender && camTrack) sender.replaceTrack(camTrack);
+            });
+          }
+          screenStream = null;
+        };
+        silentLog("Screen sharing active");
+      } catch (err) { silentLog("Screen share error: " + err.message); }
+    });
 
-        debugLog(`Camera switched to: ${currentCamera}`);
+    // Switch camera
+    switchCameraBtn.addEventListener("click", async () => {
+      if (!localStream) { alert("Start stream first"); return; }
+      try {
+        currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+        const newStream = await getCameraAndMic();
+        const oldVideoTrack = localStream.getVideoTracks()[0];
+        const newVideoTrack = newStream.getVideoTracks()[0];
+        const oldAudioTrack = localStream.getAudioTracks()[0];
+        const newAudioTrack = newStream.getAudioTracks()[0];
+        
+        // replace tracks for all peers
+        Object.values(peerConnections).forEach(pc => {
+          const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
+          if (videoSender && newVideoTrack) videoSender.replaceTrack(newVideoTrack);
+          const audioSender = pc.getSenders().find(s => s.track?.kind === 'audio');
+          if (audioSender && newAudioTrack) audioSender.replaceTrack(newAudioTrack);
+        });
+        // update local video
+        video.srcObject = newStream;
+        if (mirrorToggle.checked) video.classList.add("mirror-video");
+        else video.classList.remove("mirror-video");
+        
+        oldVideoTrack?.stop();
+        if (oldAudioTrack && oldAudioTrack !== newAudioTrack) oldAudioTrack.stop();
+        localStream = newStream;
+        startAudioMonitoring(localStream);
+        silentLog(`Camera switched to ${currentCamera}`);
+      } catch (err) { silentLog("Switch camera fail: " + err.message); }
+    });
 
-      } catch (error) {
-        debugLog(`Camera switch failed: ${error.message}`);
+    // Mirror toggle (self mirror effect, students see original)
+    mirrorToggle.addEventListener("change", (e) => {
+      if (video) {
+        if (e.target.checked) video.classList.add("mirror-video");
+        else video.classList.remove("mirror-video");
+        silentLog(`Mirror view ${e.target.checked ? "ON" : "OFF"} (students unaffected)`);
       }
     });
 
-    // Mute/Unmute Audio
-    document.getElementById("muteAudioBtn").addEventListener("click", () => {
+    // Mute audio toggle
+    muteAudioBtn.addEventListener("click", () => {
       if (localStream) {
-        const audioTracks = localStream.getAudioTracks();
-        audioTracks.forEach(track => {
-          track.enabled = !track.enabled;
-        });
-        
-        const isMuted = !audioTracks[0].enabled;
-        document.getElementById("muteAudioBtn").textContent = 
-          isMuted ? "🎤 Unmute Audio" : "🎤 Mute Audio";
-        
-        debugLog(`Audio ${isMuted ? 'muted' : 'unmuted'}`);
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !audioTrack.enabled;
+          currentAudioMuted = !audioTrack.enabled;
+          muteAudioBtn.textContent = currentAudioMuted ? "🎤 Unmute Audio" : "🎤 Mute Audio";
+          silentLog(`Microphone ${currentAudioMuted ? 'muted' : 'unmuted'}`);
+        }
       }
     });
 
-    // Test Audio
-    document.getElementById("testAudioBtn").addEventListener("click", async () => {
+    testAudioBtn.addEventListener("click", async () => {
       try {
         const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const audio = new Audio();
-        audio.srcObject = testStream;
-        audio.play();
-        
-        setTimeout(() => {
-          testStream.getTracks().forEach(track => track.stop());
-        }, 3000);
-        
-        debugLog("Audio test started - you should hear yourself");
-      } catch (error) {
-        debugLog(`Audio test failed: ${error.message}`);
-      }
+        const audioEl = new Audio();
+        audioEl.srcObject = testStream;
+        audioEl.play();
+        setTimeout(() => testStream.getTracks().forEach(t => t.stop()), 2500);
+        silentLog("Audio test played");
+      } catch (err) { silentLog("Test audio failed: " + err.message); }
     });
 
-    // Socket event handlers
+    // ---- SOCKET WEBRTC SIGNALING ----
     socket.on("connect", () => {
-      debugLog("Connected to server");
+      silentLog("Socket connected");
       updateConnectionStatus('Connected', '#10B981');
     });
+    socket.on("disconnect", () => updateConnectionStatus('Disconnected', '#EF4444'));
 
-    socket.on("disconnect", () => {
-      debugLog("Disconnected from server");
-      updateConnectionStatus('Disconnected', '#EF4444');
-    });
-
-    // Handle student joining
     socket.on("student-join", async ({ studentId, socketId }) => {
-      debugLog(`Student ${studentId} (socket: ${socketId}) is joining the stream`);
-      
+      silentLog(`Student ${studentId} joining`);
+      if (!isLive || !localStream) {
+        silentLog("Stream not live, ignoring student join");
+        return;
+      }
       try {
-        // Check if we already have a connection for this student
-        if (peerConnections[studentId]) {
-          debugLog(`Existing connection found for ${studentId}, cleaning up...`);
-          peerConnections[studentId].close();
-          delete peerConnections[studentId];
-        }
-        
+        if (peerConnections[studentId]) peerConnections[studentId].close();
         const pc = createPeerConnection(studentId);
         peerConnections[studentId] = pc;
-
-        // Create and send offer
-        const offer = await pc.createOffer({
-          offerToReceiveAudio: true,
-          offerToReceiveVideo: true
-        });
+        const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
         await pc.setLocalDescription(offer);
-        
-        debugLog(`Sending offer to student ${studentId}`);
-        socket.emit("tutor-offer", { 
-          offer: pc.localDescription, 
-          studentId: studentId,
-          tutorId: tutorId
-        });
-
-      } catch (error) {
-        debugLog(`Error handling student join for ${studentId}: ${error.message}`);
-      }
+        socket.emit("tutor-offer", { offer: pc.localDescription, studentId, tutorId });
+      } catch (err) { silentLog(`Offer error: ${err.message}`); }
     });
 
-    // Handle student answer
     socket.on("student-answer", async ({ studentId, answer }) => {
-      debugLog(`Received answer from student ${studentId}`);
-      
       const pc = peerConnections[studentId];
       if (pc) {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription(answer));
-          debugLog(`✅ Successfully set remote description for student ${studentId}`);
-        } catch (error) {
-          debugLog(`❌ Error setting remote description for ${studentId}: ${error.message}`);
-        }
-      } else {
-        debugLog(`❌ No peer connection found for student ${studentId}`);
+          silentLog(`Remote description set for ${studentId}`);
+        } catch (err) { silentLog(`Answer error: ${err.message}`); }
       }
     });
 
-    // Handle ICE candidates from students
     socket.on("ice-candidate", async ({ candidate, studentId }) => {
-      debugLog(`Received ICE candidate from student ${studentId}`);
-      
       const pc = peerConnections[studentId];
       if (pc && candidate) {
         try {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          debugLog(`✅ Added ICE candidate from student ${studentId}`);
-        } catch (error) {
-          debugLog(`❌ Error adding ICE candidate from ${studentId}: ${error.message}`);
-        }
+        } catch (err) { silentLog(`ICE add fail: ${err.message}`); }
       }
     });
 
-    // Handle viewer count updates
     socket.on("viewerCountUpdate", (count) => {
       updateViewerCount(count);
-      debugLog(`Viewer count updated: ${count}`);
     });
 
-    // Initialize
-    debugLog("Tutor live studio initialized");
-    debugLog("Note: Your self-view will be mirrored (like a mirror) for natural viewing");
-    debugLog("Students will see you normally (non-mirrored)");
-    updateConnectionStatus('Ready', '#3B82F6');
-
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
+    // cleanup before unload
+    window.addEventListener('beforeunload', (e) => {
       if (isLive) {
-        // If live, stop the stream before leaving
-        stopLiveStream();
+        stopLiveStream(false);
       }
     });
+    
+    silentLog("Tutor studio ready — mirror toggle added, logs hidden, UI cleaned");
+    updateConnectionStatus('Ready', '#3B82F6');
   </script>
 </body>
 </html>
